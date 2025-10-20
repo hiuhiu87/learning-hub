@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { BookOpen, Search, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
 
 interface Lesson {
   id: string;
@@ -29,6 +30,7 @@ export default function StudentDashboard({ userId }: { userId: string }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [enrollingId, setEnrollingId] = useState<string | null>(null);
   const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchLessons = async () => {
@@ -98,17 +100,30 @@ export default function StudentDashboard({ userId }: { userId: string }) {
         lesson.description?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/auth/login");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       <div className="max-w-7xl mx-auto p-6 md:p-10">
         {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Student Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Learn and practice with interactive lessons
-          </p>
+        <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              Student Dashboard
+            </h1>
+            <p className="text-gray-600">
+              Learn and practice with interactive lessons
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            className="w-full bg-transparent md:w-auto"
+            onClick={handleLogout}>
+            Sign out
+          </Button>
         </div>
 
         {/* Enrolled Lessons */}

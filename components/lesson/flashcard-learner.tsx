@@ -14,17 +14,18 @@ interface Flashcard {
 
 export default function FlashcardLearner({
   flashcards,
-  onComplete,
+  onMarkedChange,
 }: {
   flashcards: Flashcard[]
-  onComplete: () => void
+  onMarkedChange?: (count: number) => void
 }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
-  const [markedCards, setMarkedCards] = useState<Set<string>>(new Set())
+  const [markedCards, setMarkedCards] = useState<Record<string, boolean>>({})
 
   const currentCard = flashcards[currentIndex]
-  const isMarked = markedCards.has(currentCard.id)
+  const isMarked = Boolean(markedCards[currentCard.id])
+  const markedCount = Object.keys(markedCards).length
 
   const handleNext = () => {
     if (currentIndex < flashcards.length - 1) {
@@ -41,19 +42,23 @@ export default function FlashcardLearner({
   }
 
   const handleMark = () => {
-    const newMarked = new Set(markedCards)
-    if (isMarked) {
-      newMarked.delete(currentCard.id)
-    } else {
-      newMarked.add(currentCard.id)
-    }
-    setMarkedCards(newMarked)
+    setMarkedCards((prev) => {
+      const next = { ...prev }
+      if (next[currentCard.id]) {
+        delete next[currentCard.id]
+      } else {
+        next[currentCard.id] = true
+      }
+      onMarkedChange?.(Object.keys(next).length)
+      return next
+    })
   }
 
   const handleReset = () => {
     setCurrentIndex(0)
     setIsFlipped(false)
-    setMarkedCards(new Set())
+    setMarkedCards({})
+    onMarkedChange?.(0)
   }
 
   return (
@@ -119,11 +124,11 @@ export default function FlashcardLearner({
       </div>
 
       {/* Marked Cards Info */}
-      {markedCards.size > 0 && (
+      {markedCount > 0 && (
         <Card className="border-0 shadow-md bg-yellow-50">
           <CardContent className="pt-6">
             <p className="text-sm text-yellow-800">
-              You have marked {markedCards.size} card{markedCards.size !== 1 ? "s" : ""} for review
+              You have marked {markedCount} card{markedCount !== 1 ? "s" : ""} for review
             </p>
           </CardContent>
         </Card>

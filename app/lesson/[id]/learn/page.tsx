@@ -28,9 +28,15 @@ export default async function LearnPage({ params }: { params: { id: string } }) 
     redirect("/dashboard")
   }
 
-  const [{ data: flashcards }, { data: questions }] = await Promise.all([
+  const [{ data: flashcards }, { data: questions }, { data: attempts }] = await Promise.all([
     supabase.from("flashcards").select("*").eq("lesson_id", params.id).order("order_index"),
     supabase.from("questions").select("*").eq("lesson_id", params.id).order("order_index"),
+    supabase
+      .from("lesson_attempts")
+      .select("*")
+      .eq("lesson_id", params.id)
+      .eq("student_id", authData.user.id)
+      .order("created_at", { ascending: false }),
   ])
 
   return (
@@ -40,6 +46,7 @@ export default async function LearnPage({ params }: { params: { id: string } }) 
       flashcards={flashcards || []}
       questions={questions || []}
       userId={authData.user.id}
+      previousAttempts={attempts || []}
     />
   )
 }

@@ -40,10 +40,12 @@ interface FlashcardLearnerProps {
 export function FlashcardLearner({ cards, title }: FlashcardLearnerProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
-  const [marked, setMarked] = useState<Set<string>>(new Set())
+  const [markedMap, setMarkedMap] = useState<Record<string, boolean>>({})
 
   const currentCard = cards[currentIndex]
   const progress = ((currentIndex + 1) / cards.length) * 100
+  const markedCount = Object.keys(markedMap).length
+  const isMarked = Boolean(markedMap[currentCard.id])
 
   const handleNext = () => {
     if (currentIndex < cards.length - 1) {
@@ -60,19 +62,21 @@ export function FlashcardLearner({ cards, title }: FlashcardLearnerProps) {
   }
 
   const handleMark = () => {
-    const newMarked = new Set(marked)
-    if (newMarked.has(currentCard.id)) {
-      newMarked.delete(currentCard.id)
-    } else {
-      newMarked.add(currentCard.id)
-    }
-    setMarked(newMarked)
+    setMarkedMap((prev) => {
+      const next = { ...prev }
+      if (next[currentCard.id]) {
+        delete next[currentCard.id]
+      } else {
+        next[currentCard.id] = true
+      }
+      return next
+    })
   }
 
   const handleReset = () => {
     setCurrentIndex(0)
     setFlipped(false)
-    setMarked(new Set())
+    setMarkedMap({})
   }
 
   return (
@@ -127,8 +131,8 @@ export function FlashcardLearner({ cards, title }: FlashcardLearnerProps) {
           <ChevronRight className="h-4 w-4" />
         </Button>
 
-        <Button variant={marked.has(currentCard.id) ? "default" : "outline"} size="sm" onClick={handleMark}>
-          {marked.has(currentCard.id) ? "★ Marked" : "☆ Mark"}
+        <Button variant={isMarked ? "default" : "outline"} size="sm" onClick={handleMark}>
+          {isMarked ? "★ Marked" : "☆ Mark"}
         </Button>
 
         <Button
@@ -143,9 +147,9 @@ export function FlashcardLearner({ cards, title }: FlashcardLearnerProps) {
       </div>
 
       {/* Marked Cards Info */}
-      {marked.size > 0 && (
+      {markedCount > 0 && (
         <div className="rounded-lg bg-accent/10 p-3 text-sm text-accent-foreground">
-          {marked.size} card{marked.size !== 1 ? "s" : ""} marked for review
+          {markedCount} card{markedCount !== 1 ? "s" : ""} marked for review
         </div>
       )}
     </div>

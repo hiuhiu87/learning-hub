@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { Plus, BookOpen, Users, BarChart3 } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 interface Lesson {
   id: string
@@ -18,6 +19,7 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
+  const router = useRouter()
 
   useEffect(() => {
     const fetchLessons = async () => {
@@ -36,13 +38,23 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
     fetchLessons()
   }, [userId, supabase])
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push("/auth/login")
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       <div className="max-w-7xl mx-auto p-6 md:p-10">
         {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Teacher Dashboard</h1>
-          <p className="text-gray-600">Create and manage your lessons</p>
+        <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Teacher Dashboard</h1>
+            <p className="text-gray-600">Create and manage your lessons</p>
+          </div>
+          <Button variant="outline" className="w-full md:w-auto bg-transparent" onClick={handleLogout}>
+            Sign out
+          </Button>
         </div>
 
         {/* Stats */}
