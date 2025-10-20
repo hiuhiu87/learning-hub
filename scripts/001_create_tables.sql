@@ -142,6 +142,18 @@ create table if not exists public.student_responses (
   created_at  timestamptz not null default now()
 );
 
+-- lesson_attempts
+create table if not exists public.lesson_attempts (
+  id                  uuid primary key default gen_random_uuid(),
+  student_id          uuid not null references public.profiles(id) on delete cascade,
+  lesson_id           uuid not null references public.lessons(id) on delete cascade,
+  correct_answers     integer not null default 0,
+  total_questions     integer not null default 0,
+  flashcards_reviewed integer not null default 0,
+  created_at          timestamptz not null default now(),
+  completed_at        timestamptz
+);
+
 -- 3) TRIGGERS / UTILS
 
 -- updated_at on lessons
@@ -198,6 +210,7 @@ create index if not exists idx_lesson_enrollments_student on public.lesson_enrol
 create index if not exists idx_flashcards_lesson         on public.flashcards (lesson_id);
 create index if not exists idx_questions_lesson          on public.questions (lesson_id);
 create index if not exists idx_responses_student_lesson  on public.student_responses (student_id, lesson_id);
+create index if not exists idx_attempts_student_lesson   on public.lesson_attempts (student_id, lesson_id);
 
 -- 5) RLS ENABLE
 alter table if exists public.profiles            enable row level security;
@@ -206,6 +219,7 @@ alter table if exists public.lesson_enrollments  enable row level security;
 alter table if exists public.flashcards          enable row level security;
 alter table if exists public.questions           enable row level security;
 alter table if exists public.student_responses   enable row level security;
+alter table if exists public.lesson_attempts     enable row level security;
 
 -- 6) HELPER FUNCTIONS (SECURITY DEFINER; stable)
 create or replace function public.is_enrolled(p_lesson_id uuid, p_uid uuid)
@@ -430,6 +444,30 @@ create policy sr_select_own_or_teacher
     or exists (
       select 1 from public.lessons l
       where l.id = student_responses.lesson_id
+        and auth.uid() = l.teacher_id
+    )
+  );
+
+-- LESSON_ATTEMPTS
+drop policy if exists la_insert_own on public.lesson_attempts;
+drop policy if exists la_update_own on public.lesson_attempts;
+drop policy if exists la_select_visible on public.lesson_attempts;
+
+create policy la_insert_own
+  on public.lesson_attempts for insert
+  with check (auth.uid() = student_id);
+
+create policy la_update_own
+  on public.lesson_attempts for update
+  using (auth.uid() = student_id);
+
+create policy la_select_visible
+  on public.lesson_attempts for select
+  using (
+    auth.uid() = student_id
+    or exists (
+      select 1 from public.lessons l
+      where l.id = lesson_attempts.lesson_id
         and auth.uid() = l.teacher_id
     )
   );
