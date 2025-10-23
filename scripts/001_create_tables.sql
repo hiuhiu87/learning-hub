@@ -91,8 +91,10 @@ create table if not exists public.lessons (
   teacher_id  uuid not null references public.profiles(id) on delete cascade,
   title       text not null,
   description text,
+  time_limit_minutes integer,
   created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  updated_at  timestamptz not null default now(),
+  constraint lessons_time_limit_positive check (time_limit_minutes is null or time_limit_minutes > 0)
 );
 
 -- lesson_enrollments

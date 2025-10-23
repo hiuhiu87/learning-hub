@@ -13,6 +13,7 @@ interface Lesson {
   title: string
   description: string
   created_at: string
+  time_limit_minutes: number | null
 }
 
 export default function TeacherDashboard({ userId }: { userId: string }) {
@@ -125,15 +126,21 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {lessons.map((lesson) => (
                 <Card key={lesson.id} className="border-0 shadow-md hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader>
-                    <CardTitle className="line-clamp-2">{lesson.title}</CardTitle>
-                    <CardDescription className="line-clamp-2">{lesson.description || "No description"}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex gap-2">
-                      <Link href={`/lesson/${lesson.id}/edit`} className="flex-1">
-                        <Button variant="outline" className="w-full bg-transparent">
-                          Edit
+                <CardHeader>
+                  <CardTitle className="line-clamp-2">{lesson.title}</CardTitle>
+                  <CardDescription className="line-clamp-2">{lesson.description || "No description"}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {lesson.time_limit_minutes != null && (
+                    <p className="text-xs text-gray-500 mb-4">
+                      Time limit: {lesson.time_limit_minutes} minute
+                      {lesson.time_limit_minutes === 1 ? "" : "s"}
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <Link href={`/lesson/${lesson.id}/edit`} className="flex-1">
+                      <Button variant="outline" className="w-full bg-transparent">
+                        Edit
                         </Button>
                       </Link>
                       <Link href={`/lesson/${lesson.id}/analytics`} className="flex-1">
