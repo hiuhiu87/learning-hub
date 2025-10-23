@@ -1,11 +1,12 @@
 "use client"
 
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import { Trash2 } from "lucide-react"
 import type { LessonQuestion, QuestionType } from "@/types/lesson"
 
@@ -23,10 +24,12 @@ const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
 }
 
 export default function QuestionEditor({
+  index,
   question,
   onUpdate,
   onDelete,
 }: {
+  index?: number
   question: LessonQuestion
   onUpdate: (updates: Partial<LessonQuestion>) => void
   onDelete: () => void
@@ -80,92 +83,120 @@ export default function QuestionEditor({
     onUpdate({ [field]: value } as Partial<LessonQuestion>)
   }
 
+  const fieldClass =
+    "mt-2 border-slate-200/60 bg-white text-slate-700 placeholder:text-slate-400 focus-visible:border-sky-400/60 focus-visible:ring-sky-400/40 dark:border-white/15 dark:bg-slate-950/60 dark:text-slate-100"
+
   return (
-    <Card className="border-0 shadow-md">
-      <CardContent className="pt-6">
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor={`question-type-${question.id}`}>Question Type</Label>
-            <Select value={question.question_type} onValueChange={handleTypeChange}>
-              <SelectTrigger id={`question-type-${question.id}`} className="mt-2">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(QUESTION_TYPE_LABEL).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor={`question-${question.id}`}>Question</Label>
-            <Textarea
-              id={`question-${question.id}`}
-              value={question.question_text}
-              onChange={(e) => onUpdate({ question_text: e.target.value })}
-              placeholder="Enter the question"
-              className="mt-2"
-            />
-          </div>
-
-          {isYesNo ? (
-            <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-              Answer choices are fixed to Yes / No / Not Given for this question type. Choose the correct option below.
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-4">
-              {optionEntries.map(({ key, value }) => (
-                <div key={key}>
-                  <Label htmlFor={`option-${key.toLowerCase()}-${question.id}`}>Option {key}</Label>
-                  <Input
-                    id={`option-${key.toLowerCase()}-${question.id}`}
-                    value={value}
-                    onChange={(e) => handleOptionChange(key, e.target.value)}
-                    placeholder={`Option ${key}`}
-                    className="mt-2"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div>
-            <Label htmlFor={`correct-${question.id}`}>Correct Answer</Label>
-            <Select value={question.correct_answer} onValueChange={handleCorrectAnswerChange}>
-              <SelectTrigger id={`correct-${question.id}`} className="mt-2">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {selectOptions.map(({ key, label }) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor={`explanation-${question.id}`}>Explanation (Optional)</Label>
-            <Textarea
-              id={`explanation-${question.id}`}
-              value={question.explanation}
-              onChange={(e) => onUpdate({ explanation: e.target.value })}
-              placeholder="Explain why this is the correct answer"
-              className="mt-2"
-            />
-          </div>
-
-          <div className="flex justify-end">
-            <Button onClick={onDelete} variant="destructive" size="sm" className="gap-2">
-              <Trash2 className="w-4 h-4" />
-              Delete
-            </Button>
-          </div>
+    <Card className="border-slate-200/60 bg-white/80 text-slate-900 shadow-2xl backdrop-blur transition dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-100">
+      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
+        <div className="space-y-1">
+          <Badge variant="secondary" className="border-slate-200/60 bg-white text-slate-700 transition dark:border-white/10 dark:bg-white/10 dark:text-white">
+            Question {index != null ? `#${index}` : ""}
+          </Badge>
+          <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Assessment Item</CardTitle>
         </div>
+        <Button
+          onClick={onDelete}
+          variant="ghost"
+          size="sm"
+          className="gap-2 border border-slate-200/60 bg-white text-red-500 hover:bg-red-100 dark:border-white/10 dark:bg-white/5 dark:text-red-200 dark:hover:bg-red-500/20 dark:hover:text-red-100"
+        >
+          <Trash2 className="h-4 w-4" />
+          Remove
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-6 pt-0">
+        <div className="space-y-2">
+          <Label htmlFor={`question-type-${question.id}`} className="text-sm text-slate-600 dark:text-slate-300">
+            Question Type
+          </Label>
+          <Select value={question.question_type} onValueChange={handleTypeChange}>
+            <SelectTrigger id={`question-type-${question.id}`} className={fieldClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="border border-slate-200/60 bg-white text-slate-700 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100">
+              {Object.entries(QUESTION_TYPE_LABEL).map(([value, label]) => (
+                <SelectItem key={value} value={value} className="focus:bg-slate-100 dark:focus:bg-slate-800">
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor={`question-${question.id}`} className="text-sm text-slate-600 dark:text-slate-300">
+            Question Prompt
+          </Label>
+          <Textarea
+            id={`question-${question.id}`}
+            value={question.question_text}
+            onChange={(e) => onUpdate({ question_text: e.target.value })}
+            placeholder="Ask a clear, outcome-aligned question learners can reason through."
+            className={fieldClass}
+            rows={4}
+          />
+        </div>
+
+        {isYesNo ? (
+          <div className="rounded-2xl border border-slate-200/60 bg-white/70 p-4 text-sm text-slate-600 transition dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+            Answer choices are fixed to Yes / No / Not Given for this format. Use the explanation below to reinforce what
+            great reasoning looks like.
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {optionEntries.map(({ key, value }) => (
+              <div key={key} className="space-y-2">
+                <Label htmlFor={`option-${key.toLowerCase()}-${question.id}`} className="text-sm text-slate-600 dark:text-slate-300">
+                  Option {key}
+                </Label>
+                <Input
+                  id={`option-${key.toLowerCase()}-${question.id}`}
+                  value={value}
+                  onChange={(e) => handleOptionChange(key, e.target.value)}
+                  placeholder={`Response choice ${key}`}
+                  className={fieldClass}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <Label htmlFor={`correct-${question.id}`} className="text-sm text-slate-600 dark:text-slate-300">
+            Correct Answer
+          </Label>
+          <Select value={question.correct_answer} onValueChange={handleCorrectAnswerChange}>
+            <SelectTrigger id={`correct-${question.id}`} className={fieldClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="border border-slate-200/60 bg-white text-slate-700 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100">
+              {selectOptions.map(({ key, label }) => (
+                <SelectItem key={key} value={key} className="focus:bg-slate-100 dark:focus:bg-slate-800">
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor={`explanation-${question.id}`} className="text-sm text-slate-600 dark:text-slate-300">
+            Explanation (optional)
+          </Label>
+          <Textarea
+            id={`explanation-${question.id}`}
+            value={question.explanation}
+            onChange={(e) => onUpdate({ explanation: e.target.value })}
+            placeholder="Offer coaching feedback that celebrates the right approach and clarifies misconceptions."
+            className={fieldClass}
+            rows={3}
+          />
+        </div>
+
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Blend recall and application-focused questions. The right mix keeps sessions challenging yet approachable.
+        </p>
       </CardContent>
     </Card>
   )
