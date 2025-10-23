@@ -25,6 +25,7 @@ interface Lesson {
   id: string
   title: string
   description: string
+  time_limit_minutes: number | null
 }
 
 interface Question {
@@ -173,6 +174,11 @@ export default function LessonAnalytics({
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Lesson Analytics</h1>
               <p className="text-gray-600">{lesson.title}</p>
+              <p className="text-sm text-gray-500">
+                {lesson.time_limit_minutes != null
+                  ? `Time limit: ${lesson.time_limit_minutes} minute${lesson.time_limit_minutes === 1 ? "" : "s"}`
+                  : "No time limit set"}
+              </p>
             </div>
           </div>
         </div>

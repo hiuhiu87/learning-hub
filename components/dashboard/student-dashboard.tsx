@@ -21,6 +21,7 @@ interface Lesson {
   description: string;
   teacher_id: string;
   created_at: string;
+  time_limit_minutes: number | null;
 }
 
 export default function StudentDashboard({ userId }: { userId: string }) {
@@ -151,6 +152,12 @@ export default function StudentDashboard({ userId }: { userId: string }) {
                     </div>
                   </CardHeader>
                   <CardContent>
+                    {lesson.time_limit_minutes != null && (
+                      <p className="text-xs text-gray-500 mb-4">
+                        Time limit: {lesson.time_limit_minutes} minute
+                        {lesson.time_limit_minutes === 1 ? "" : "s"}
+                      </p>
+                    )}
                     <Link href={`/lesson/${lesson.id}/learn`}>
                       <Button className="w-full">Start Learning</Button>
                     </Link>
@@ -210,6 +217,12 @@ export default function StudentDashboard({ userId }: { userId: string }) {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    {lesson.time_limit_minutes != null && (
+                      <p className="text-xs text-gray-500 mb-4">
+                        Time limit: {lesson.time_limit_minutes} minute
+                        {lesson.time_limit_minutes === 1 ? "" : "s"}
+                      </p>
+                    )}
                     <Button
                       onClick={() => handleEnroll(lesson.id)}
                       disabled={enrollingId === lesson.id}

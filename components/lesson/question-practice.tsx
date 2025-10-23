@@ -15,9 +15,13 @@ const YES_NO_LABELS: Record<"A" | "B" | "C", string> = {
 export default function QuestionPractice({
   questions,
   onAnswerQuestion,
+  isLocked = false,
+  lockMessage,
 }: {
   questions: LessonQuestion[]
   onAnswerQuestion: (questionId: string, selectedAnswer: string, isCorrect: boolean) => void
+  isLocked?: boolean
+  lockMessage?: string
 }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
@@ -46,13 +50,13 @@ export default function QuestionPractice({
   }))
 
   const handleSelectAnswer = (key: string) => {
-    if (!isAnswered) {
+    if (!isAnswered && !isLocked) {
       setSelectedAnswer(key)
     }
   }
 
   const handleSubmitAnswer = () => {
-    if (selectedAnswer) {
+    if (selectedAnswer && !isLocked) {
       const correct = selectedAnswer === currentQuestion.correct_answer
       setAnswers((prev) => ({ ...prev, [currentQuestion.id]: selectedAnswer }))
       setShowResult(true)
@@ -91,6 +95,14 @@ export default function QuestionPractice({
         Question {currentIndex + 1} of {questions.length}
       </div>
 
+      {isLocked && lockMessage && (
+        <Card className="border-0 shadow-md bg-yellow-50">
+          <CardContent className="pt-6">
+            <p className="text-sm text-yellow-800">{lockMessage}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Question */}
       <Card className="border-0 shadow-md">
         <CardHeader>
@@ -126,9 +138,9 @@ export default function QuestionPractice({
             <button
               key={option.key}
               onClick={() => handleSelectAnswer(option.key)}
-              disabled={isAnswered}
+              disabled={isAnswered || isLocked}
               className={`w-full p-4 border-2 rounded-lg text-left transition-all ${bgColor} ${borderColor} ${
-                isAnswered ? "cursor-default" : "cursor-pointer"
+                isAnswered || isLocked ? "cursor-default" : "cursor-pointer"
               }`}
             >
               <div className="flex items-start gap-3">
@@ -167,7 +179,7 @@ export default function QuestionPractice({
 
       {/* Submit Button */}
       {!isAnswered && (
-        <Button onClick={handleSubmitAnswer} disabled={!selectedAnswer} className="w-full">
+        <Button onClick={handleSubmitAnswer} disabled={!selectedAnswer || isLocked} className="w-full">
           Submit Answer
         </Button>
       )}

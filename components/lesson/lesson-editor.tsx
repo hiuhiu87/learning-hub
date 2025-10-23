@@ -19,6 +19,7 @@ interface Lesson {
   id: string;
   title: string;
   description: string;
+  time_limit_minutes: number | null;
 }
 
 interface Flashcard {
@@ -54,12 +55,25 @@ export default function LessonEditor({
   const [description, setDescription] = useState(
     initialLesson?.description || ""
   );
+  const [timeLimit, setTimeLimit] = useState(
+    initialLesson?.time_limit_minutes ? String(initialLesson.time_limit_minutes) : ""
+  );
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [questions, setQuestions] = useState<LessonQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    if (initialLesson) {
+      setTimeLimit(
+        initialLesson.time_limit_minutes
+          ? String(initialLesson.time_limit_minutes)
+          : ""
+      );
+    }
+  }, [initialLesson]);
 
   useEffect(() => {
     if (lessonId) {
@@ -113,6 +127,18 @@ export default function LessonEditor({
       return;
     }
 
+    const trimmedTimeLimit = timeLimit.trim();
+    const parsedTimeLimit =
+      trimmedTimeLimit === "" ? null : Number.parseInt(trimmedTimeLimit, 10);
+
+    if (
+      parsedTimeLimit !== null &&
+      (Number.isNaN(parsedTimeLimit) || parsedTimeLimit <= 0)
+    ) {
+      alert("Please enter a positive number of minutes or leave blank.");
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -126,6 +152,7 @@ export default function LessonEditor({
             teacher_id: userId,
             title,
             description,
+            time_limit_minutes: parsedTimeLimit,
           },
           { returning: "minimal" }
         );
@@ -135,7 +162,10 @@ export default function LessonEditor({
       } else {
         const { error: updateError } = await supabase
           .from("lessons")
-          .update({ title, description }, { returning: "minimal" })
+          .update(
+            { title, description, time_limit_minutes: parsedTimeLimit },
+            { returning: "minimal" }
+          )
           .eq("id", currentLessonId);
 
         if (updateError) throw updateError;
@@ -295,29 +325,42 @@ export default function LessonEditor({
           <CardHeader>
             <CardTitle>Lesson Details</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="title">Lesson Title</Label>
-              <Input
-                id="title"
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="title">Lesson Title</Label>
+            <Input
+              id="title"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="Enter lesson title"
                 className="mt-2"
               />
-            </div>
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
+          </div>
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 placeholder="Enter lesson description"
-                className="mt-2"
-              />
-            </div>
-          </CardContent>
-        </Card>
+              className="mt-2"
+            />
+          </div>
+          <div>
+            <Label htmlFor="timeLimit">Time Limit (minutes)</Label>
+            <Input
+              id="timeLimit"
+              type="number"
+              min={1}
+              step={1}
+              value={timeLimit}
+              onChange={e => setTimeLimit(e.target.value)}
+              placeholder="Leave blank for no time limit"
+              className="mt-2"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
         {/* Content Tabs */}
         <Tabs defaultValue="flashcards" className="mb-8">
