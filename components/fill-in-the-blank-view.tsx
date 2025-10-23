@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { ChevronLeft, ChevronRight, RotateCw } from "lucide-react"
 
 const exercises = [
   {
@@ -72,29 +73,33 @@ export default function FillInTheBlankView() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Progress */}
+    <div className="space-y-6 text-slate-100">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-medium text-gray-600">
-          Question {currentIndex + 1} of {exercises.length}
-        </div>
-        <div className="h-2 w-32 overflow-hidden rounded-full bg-gray-200">
-          <div
-            className="h-full bg-gradient-to-r from-blue-500 to-indigo-600"
-            style={{ width: `${((currentIndex + 1) / exercises.length) * 100}%` }}
-          />
-        </div>
+        <Badge variant="secondary" className="border-white/10 bg-white/10 text-white">
+          Fill in the blank
+        </Badge>
+        <span className="text-xs uppercase tracking-[0.3em] text-slate-400">
+          {currentIndex + 1} / {exercises.length}
+        </span>
       </div>
 
-      {/* Question */}
-      <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
-        <CardContent className="pt-8">
-          <p className="text-center text-xl font-semibold text-gray-900">
-            {current.sentence.split("_____").map((part, i) => (
-              <span key={i}>
+      <div className="relative h-2 w-full overflow-hidden rounded-full border border-white/10 bg-white/5">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-sky-500 via-emerald-500 to-fuchsia-500 transition-all duration-300"
+          style={{ width: `${((currentIndex + 1) / exercises.length) * 100}%` }}
+        />
+      </div>
+
+      <Card className="border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl backdrop-blur">
+        <CardContent className="flex items-center justify-center p-8">
+          <p className="text-center text-2xl font-semibold leading-relaxed text-white">
+            {current.sentence.split("_____").map((part, i, parts) => (
+              <span key={`part-${i}`}>
                 {part}
-                {i < current.sentence.split("_____").length - 1 && (
-                  <span className="mx-2 inline-block h-8 w-16 border-b-2 border-blue-600" />
+                {i < parts.length - 1 && (
+                  <span className="mx-2 inline-flex h-10 w-24 items-center justify-center rounded-full border border-dashed border-white/40 text-sm text-slate-200">
+                    ______
+                  </span>
                 )}
               </span>
             ))}
@@ -102,79 +107,106 @@ export default function FillInTheBlankView() {
         </CardContent>
       </Card>
 
-      {/* Options */}
       <div className="grid gap-3 sm:grid-cols-2">
-        {current.options.map((option) => (
-          <Button
-            key={option}
-            onClick={() => !submitted && setSelected(option)}
-            disabled={submitted}
-            variant={selected === option ? "default" : "outline"}
-            className={`h-auto py-4 text-base font-medium transition-all ${
-              selected === option
-                ? submitted
-                  ? isCorrect
-                    ? "bg-green-600 hover:bg-green-700 border-green-600"
-                    : "bg-red-600 hover:bg-red-700 border-red-600"
-                  : "bg-blue-600 hover:bg-blue-700 border-blue-600"
-                : submitted && option === current.correct
-                  ? "bg-green-100 border-green-300 text-green-900"
-                  : ""
-            }`}
-          >
-            {option}
-          </Button>
-        ))}
+        {current.options.map((option) => {
+          const isSelected = selected === option
+          const isCorrectOption = option === current.correct
+          const isWrongSelected = submitted && isSelected && !isCorrect
+
+          let classes =
+            "h-auto rounded-2xl border border-white/10 bg-white/5 py-4 text-base font-medium text-slate-100 transition-colors hover:bg-white/15 disabled:opacity-80"
+
+          if (isSelected && !submitted) {
+            classes = "h-auto rounded-2xl border border-sky-400/50 bg-sky-500/15 py-4 text-base font-medium text-sky-100"
+          }
+
+          if (submitted) {
+            if (isCorrectOption) {
+              classes = "h-auto rounded-2xl border border-emerald-400/40 bg-emerald-500/15 py-4 text-base font-medium text-emerald-100"
+            } else if (isWrongSelected) {
+              classes = "h-auto rounded-2xl border border-rose-400/40 bg-rose-500/15 py-4 text-base font-medium text-rose-100"
+            } else {
+              classes = "h-auto rounded-2xl border border-white/10 bg-white/5 py-4 text-base font-medium text-slate-200"
+            }
+          }
+
+          return (
+            <Button
+              key={option}
+              onClick={() => !submitted && setSelected(option)}
+              disabled={submitted}
+              className={classes}
+            >
+              {option}
+            </Button>
+          )
+        })}
       </div>
 
-      {/* Feedback */}
       {submitted && (
-        <Card className={isCorrect ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
-          <CardContent className="pt-6">
-            <p className={`font-semibold ${isCorrect ? "text-green-900" : "text-red-900"}`}>
-              {isCorrect ? "✓ Correct!" : "✗ Incorrect"}
-            </p>
-            <p className="mt-2 text-sm text-gray-700">{current.explanation}</p>
+        <Card
+          className={
+            isCorrect ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-100" : "border-rose-400/40 bg-rose-500/10 text-rose-100"
+          }
+        >
+          <CardContent className="space-y-2 p-5 text-sm">
+            <p className="font-semibold">{isCorrect ? "Nice work!" : "Keep going"}</p>
+            <p>{current.explanation}</p>
           </CardContent>
         </Card>
       )}
 
-      {/* Submit Button */}
       {!submitted && (
         <Button
           onClick={handleSubmit}
           disabled={!selected}
-          className="w-full bg-blue-600 hover:bg-blue-700 py-6 text-base font-semibold"
+          className="w-full gap-2 bg-emerald-500 text-slate-900 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-300"
         >
-          Check Answer
+          Check answer
         </Button>
       )}
 
-      {/* Navigation */}
-      <div className="flex gap-3">
-        <Button variant="outline" onClick={handlePrev} disabled={currentIndex === 0} className="flex-1 bg-transparent">
-          <ChevronLeft className="mr-2 h-4 w-4" />
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button
+          variant="ghost"
+          onClick={handlePrev}
+          disabled={currentIndex === 0}
+          className="flex-1 gap-2 border border-white/10 bg-white/5 text-slate-100 hover:bg-white/15 disabled:opacity-40"
+        >
+          <ChevronLeft className="h-4 w-4" />
           Previous
         </Button>
         <Button
           onClick={handleNext}
           disabled={currentIndex === exercises.length - 1 || !submitted}
-          className="flex-1 bg-blue-600 hover:bg-blue-700"
+          className="flex-1 gap-2 bg-sky-500 text-white hover:bg-sky-400 disabled:bg-slate-700 disabled:text-slate-300"
         >
           Next
-          <ChevronRight className="ml-2 h-4 w-4" />
+          <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Summary */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="pt-6">
-          <p className="text-sm text-gray-700">
-            Correct answers: <span className="font-bold text-blue-600">{correct.length}</span> out of{" "}
-            <span className="font-bold text-blue-600">{exercises.length}</span>
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-between gap-3">
+        <Card className="flex-1 border-white/10 bg-white/5 text-slate-200">
+          <CardContent className="p-4 text-sm">
+            Correct answers: <span className="font-semibold text-white">{correct.length}</span> /{" "}
+            <span className="font-semibold text-white">{exercises.length}</span>
+          </CardContent>
+        </Card>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setSelected(null)
+            setSubmitted(false)
+            setCorrect([])
+            setCurrentIndex(0)
+          }}
+          className="gap-2 border border-white/10 bg-white/5 text-slate-100 hover:bg-white/15"
+        >
+          <RotateCw className="h-4 w-4" />
+          Reset set
+        </Button>
+      </div>
     </div>
   )
 }

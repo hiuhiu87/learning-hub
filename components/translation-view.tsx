@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { ChevronLeft, ChevronRight, RotateCw, Lightbulb } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 
 const translations = [
@@ -38,8 +39,6 @@ export default function TranslationView() {
   const [userTranslation, setUserTranslation] = useState("")
   const [submitted, setSubmitted] = useState(false)
   const [showHint, setShowHint] = useState(false)
-  const [showReference, setShowReference] = useState(false)
-
   const current = translations[currentIndex]
 
   const handleNext = () => {
@@ -48,7 +47,6 @@ export default function TranslationView() {
       setUserTranslation("")
       setSubmitted(false)
       setShowHint(false)
-      setShowReference(false)
     }
   }
 
@@ -58,7 +56,6 @@ export default function TranslationView() {
       setUserTranslation("")
       setSubmitted(false)
       setShowHint(false)
-      setShowReference(false)
     }
   }
 
@@ -67,103 +64,113 @@ export default function TranslationView() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Progress */}
+    <div className="space-y-6 text-slate-100">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-medium text-gray-600">
-          Sentence {currentIndex + 1} of {translations.length}
-        </div>
-        <div className="h-2 w-32 overflow-hidden rounded-full bg-gray-200">
-          <div
-            className="h-full bg-gradient-to-r from-blue-500 to-indigo-600"
-            style={{ width: `${((currentIndex + 1) / translations.length) * 100}%` }}
-          />
-        </div>
+        <Badge variant="secondary" className="border-white/10 bg-white/10 text-white">
+          Translation workshop
+        </Badge>
+        <span className="text-xs uppercase tracking-[0.3em] text-slate-400">
+          {currentIndex + 1} / {translations.length}
+        </span>
       </div>
 
-      {/* English Sentence */}
-      <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
-        <CardContent className="pt-8">
-          <p className="text-center text-lg font-semibold text-gray-900">"{current.english}"</p>
-          <p className="mt-4 text-center text-sm text-blue-600">Translate this sentence to Vietnamese</p>
-        </CardContent>
-      </Card>
-
-      {/* Translation Input */}
-      <div className="space-y-3">
-        <Textarea
-          placeholder="Enter your translation here..."
-          value={userTranslation}
-          onChange={(e) => setUserTranslation(e.target.value)}
-          disabled={submitted}
-          className="min-h-24 resize-none border-2 border-blue-200 focus:border-blue-500"
+      <div className="relative h-2 w-full overflow-hidden rounded-full border border-white/10 bg-white/5">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-fuchsia-500 via-sky-500 to-emerald-500 transition-all duration-300"
+          style={{ width: `${((currentIndex + 1) / translations.length) * 100}%` }}
         />
       </div>
 
-      {/* Hint Button */}
+      <Card className="border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl backdrop-blur">
+        <CardContent className="space-y-3 p-8 text-center">
+          <p className="text-lg font-semibold text-white">“{current.english}”</p>
+          <p className="text-sm text-slate-300">Translate this sentence to Vietnamese</p>
+        </CardContent>
+      </Card>
+
+      <Textarea
+        placeholder="Type your translation..."
+        value={userTranslation}
+        onChange={(e) => setUserTranslation(e.target.value)}
+        disabled={submitted}
+        className="min-h-28 resize-none border-white/15 bg-slate-950/60 text-slate-100 placeholder:text-slate-400 focus-visible:border-sky-400/60 focus-visible:ring-sky-400/40"
+      />
+
       {!submitted && (
         <Button
-          variant="outline"
-          onClick={() => setShowHint(!showHint)}
-          className="w-full border-blue-300 text-blue-600 hover:bg-blue-50"
+          variant="ghost"
+          onClick={() => setShowHint((prev) => !prev)}
+          className="w-full gap-2 border border-white/10 bg-white/5 text-slate-100 hover:bg-white/15"
         >
-          {showHint ? "Hide Hint" : "Show Hint"}
+          <Lightbulb className="h-4 w-4" />
+          {showHint ? "Hide hint" : "Show hint"}
         </Button>
       )}
 
-      {/* Hint */}
       {showHint && !submitted && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="pt-6">
-            <p className="text-sm text-yellow-900">{current.hint}</p>
-          </CardContent>
+        <Card className="border-amber-400/40 bg-amber-500/10 text-amber-100">
+          <CardContent className="p-4 text-sm">{current.hint}</CardContent>
         </Card>
       )}
 
-      {/* Submit Button */}
       {!submitted && (
         <Button
           onClick={handleSubmit}
           disabled={!userTranslation.trim()}
-          className="w-full bg-blue-600 hover:bg-blue-700 py-6 text-base font-semibold"
+          className="w-full gap-2 bg-fuchsia-500 text-white hover:bg-fuchsia-400 disabled:bg-slate-700 disabled:text-slate-300"
         >
-          Submit Translation
+          Submit translation
         </Button>
       )}
 
-      {/* Reference Translation */}
       {submitted && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="pt-6">
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs font-semibold uppercase text-green-700">Your Translation</p>
-                <p className="mt-2 text-gray-900">{userTranslation}</p>
-              </div>
-              <div className="border-t border-green-200 pt-3">
-                <p className="text-xs font-semibold uppercase text-green-700">Reference Translation</p>
-                <p className="mt-2 text-gray-900">{current.reference}</p>
-              </div>
+        <Card className="border-white/10 bg-white/5 text-slate-200">
+          <CardContent className="space-y-4 p-6 text-sm">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Your translation</p>
+              <p className="mt-2 text-white">{userTranslation}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Reference translation</p>
+              <p className="mt-2 text-white">{current.reference}</p>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Navigation */}
-      <div className="flex gap-3">
-        <Button variant="outline" onClick={handlePrev} disabled={currentIndex === 0} className="flex-1 bg-transparent">
-          <ChevronLeft className="mr-2 h-4 w-4" />
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Button
+          variant="ghost"
+          onClick={handlePrev}
+          disabled={currentIndex === 0}
+          className="flex-1 gap-2 border border-white/10 bg-white/5 text-slate-100 hover:bg-white/15 disabled:opacity-40"
+        >
+          <ChevronLeft className="h-4 w-4" />
           Previous
         </Button>
         <Button
           onClick={handleNext}
           disabled={currentIndex === translations.length - 1 || !submitted}
-          className="flex-1 bg-blue-600 hover:bg-blue-700"
+          className="flex-1 gap-2 bg-sky-500 text-white hover:bg-sky-400 disabled:bg-slate-700 disabled:text-slate-300"
         >
           Next
-          <ChevronRight className="ml-2 h-4 w-4" />
+          <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
+
+      <Button
+        variant="ghost"
+        onClick={() => {
+          setCurrentIndex(0)
+          setUserTranslation("")
+          setSubmitted(false)
+          setShowHint(false)
+        }}
+        className="w-full gap-2 border border-white/10 bg-white/5 text-slate-100 hover:bg-white/15"
+      >
+        <RotateCw className="h-4 w-4" />
+        Start over
+      </Button>
     </div>
   )
 }

@@ -1,6 +1,8 @@
 "use client"
 import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { FlashcardLearner } from "@/components/flashcard"
 import { FillInTheBlank } from "@/components/fill-in-the-blank"
 import { SentenceTranslation } from "@/components/sentence-translation"
@@ -386,71 +388,99 @@ export default function LessonPage({ params }: { params: { id: string } }) {
 
   if (!lesson) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-          <h1 className="text-2xl font-bold text-gray-900">Lesson not found</h1>
+      <main className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-sky-600/25 via-slate-950 to-slate-950" />
+        <div className="pointer-events-none absolute inset-0 opacity-35 [background:radial-gradient(rgba(148,163,184,0.12)_1px,transparent_1px)] [background-size:26px_26px]" />
+        <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-4xl flex-col items-center justify-center px-6 py-12 text-center md:px-10">
+          <h1 className="text-3xl font-semibold text-white">Lesson not found</h1>
+          <p className="mt-2 text-sm text-slate-300">The lesson you’re looking for doesn’t exist or has been archived.</p>
         </div>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-      {/* Header */}
-      <header className="border-b border-blue-100 bg-white shadow-sm">
-        <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-          <a href="/" className="mb-4 inline-block text-sm text-blue-600 hover:text-blue-700">
-            ← Back to Lessons
-          </a>
-          <h1 className="text-3xl font-bold text-blue-900">{lesson.title}</h1>
-        </div>
-      </header>
+    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-indigo-500/25 via-slate-950 to-slate-950" />
+      <div className="pointer-events-none absolute inset-0 opacity-35 [background:radial-gradient(rgba(148,163,184,0.12)_1px,transparent_1px)] [background-size:26px_26px]" />
 
-      {/* Main Content */}
-      <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-white">
-            <TabsTrigger value="flashcards" className="data-[state=active]:bg-blue-100">
-              Flashcards
-            </TabsTrigger>
-            <TabsTrigger value="fill-in-blank" className="data-[state=active]:bg-blue-100">
-              Fill in Blank
-            </TabsTrigger>
-            <TabsTrigger value="yes-no" className="data-[state=active]:bg-blue-100">
-              Yes / No / Not Given
-            </TabsTrigger>
-            <TabsTrigger value="translation" className="data-[state=active]:bg-blue-100">
-              Translation
-            </TabsTrigger>
-          </TabsList>
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-10 px-6 py-10 md:px-10">
+        <header className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur md:flex-row md:items-center md:justify-between">
+          <div>
+            <a href="/" className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-slate-300 transition hover:text-white">
+              <span aria-hidden>←</span> Back to lessons
+            </a>
+            <h1 className="mt-3 text-3xl font-semibold text-white">{lesson.title}</h1>
+            <p className="mt-2 text-sm text-slate-300">
+              Rotate through flashcards, recall prompts, and translation drills to master this topic.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 md:justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="border border-white/10 bg-white/10 text-slate-100 hover:bg-white/20"
+            >
+              Share lesson
+            </Button>
+            <Button className="gap-2 bg-sky-500 text-white hover:bg-sky-400">Start learning</Button>
+          </div>
+        </header>
 
-          {/* Flashcards Tab */}
-          <TabsContent value="flashcards" className="mt-8">
-            <FlashcardLearner cards={lesson.flashcards} />
-          </TabsContent>
+        <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+            <TabsList className="grid w-full grid-cols-4 gap-2 rounded-full border border-white/10 bg-white/5 p-1">
+              <TabsTrigger
+                value="flashcards"
+                className="rounded-full data-[state=active]:bg-sky-500 data-[state=active]:text-white"
+              >
+                Flashcards
+              </TabsTrigger>
+              <TabsTrigger
+                value="fill-in-blank"
+                className="rounded-full data-[state=active]:bg-emerald-500 data-[state=active]:text-white"
+              >
+                Fill in blank
+              </TabsTrigger>
+              <TabsTrigger
+                value="yes-no"
+                className="rounded-full data-[state=active]:bg-fuchsia-500 data-[state=active]:text-white"
+              >
+                Yes / No / NG
+              </TabsTrigger>
+              <TabsTrigger
+                value="translation"
+                className="rounded-full data-[state=active]:bg-violet-500 data-[state=active]:text-white"
+              >
+                Translation
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Fill in the Blank Tab */}
-          <TabsContent value="fill-in-blank" className="mt-8">
-            <FillInTheBlank exercises={lesson.fillInTheBlank} />
-          </TabsContent>
+            <TabsContent value="flashcards">
+              <FlashcardLearner cards={lesson.flashcards} />
+            </TabsContent>
 
-          <TabsContent value="yes-no" className="mt-8">
-            {lesson.questions.length === 0 ? (
-              <Card className="border-0 shadow-md">
-                <CardContent className="py-12 text-center">
-                  <p className="text-gray-600">No Yes/No/Not Given questions in this lesson yet.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <QuestionPractice questions={lesson.questions} onAnswerQuestion={handlePracticeAnswer} />
-            )}
-          </TabsContent>
+            <TabsContent value="fill-in-blank">
+              <FillInTheBlank exercises={lesson.fillInTheBlank} />
+            </TabsContent>
 
-          {/* Translation Tab */}
-          <TabsContent value="translation" className="mt-8">
-            <SentenceTranslation exercises={lesson.translation} />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="yes-no">
+              {lesson.questions.length === 0 ? (
+                <Card className="border-white/10 bg-white/5 text-slate-200">
+                  <CardContent className="py-12 text-center text-sm">
+                    No yes / no questions yet. Add a few to check understanding.
+                  </CardContent>
+                </Card>
+              ) : (
+                <QuestionPractice questions={lesson.questions} onAnswerQuestion={handlePracticeAnswer} />
+              )}
+            </TabsContent>
+
+            <TabsContent value="translation">
+              <SentenceTranslation exercises={lesson.translation} />
+            </TabsContent>
+          </Tabs>
+        </section>
       </div>
     </main>
   )

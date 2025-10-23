@@ -1,12 +1,27 @@
 "use client"
 
+import type React from "react"
 import Link from "next/link"
-import { ArrowLeft, Users, CheckCircle2, BarChart3, XCircle, MinusCircle } from "lucide-react"
+import {
+  ArrowLeft,
+  Users,
+  CheckCircle2,
+  BarChart3,
+  XCircle,
+  Sparkles,
+  TrendingUp,
+  AlertTriangle,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 interface Enrollment {
@@ -108,6 +123,12 @@ export default function LessonAnalytics({
     }
   })
 
+  studentSummaries.sort((a, b) => {
+    const nameA = getStudentDisplayName(a).toLowerCase()
+    const nameB = getStudentDisplayName(b).toLowerCase()
+    return nameA.localeCompare(nameB)
+  })
+
   const totalStudents = studentSummaries.length
   const totalResponses = responses.length
   const correctResponses = responses.filter((r) => r.is_correct).length
@@ -116,171 +137,148 @@ export default function LessonAnalytics({
       ? Math.round(studentSummaries.reduce((sum, summary) => sum + summary.score, 0) / studentSummaries.length)
       : 0
 
-  const formatAnswer = (question: Question | undefined, key?: string | null) => {
-    if (!question || !key) return "—"
-    const normalizedKey = key.toUpperCase() as "A" | "B" | "C" | "D"
-    const lookup: Record<"A" | "B" | "C" | "D", string> = {
-      A: question.option_a,
-      B: question.option_b,
-      C: question.option_c,
-      D: question.option_d,
-    }
-    const label = lookup[normalizedKey]
-    if (!label) return normalizedKey
-    return `${label} (${normalizedKey})`
-  }
+  const questionResponses = new Map<string, Response[]>()
+  responses.forEach((response) => {
+    const list = questionResponses.get(response.question_id) ?? []
+    list.push(response)
+    questionResponses.set(response.question_id, list)
+  })
 
-  const formatQuestionType = (type: string) => {
-    switch (type) {
-      case "yes-no-not-given":
-        return "Yes / No / Not Given"
-      case "multiple-choice":
-        return "Multiple Choice"
-      default:
-        return type
-    }
-  }
+  const questionInsights = questions.map((question) => {
+    const questionResponseList = questionResponses.get(question.id) ?? []
+    const correctCount = questionResponseList.filter((response) => response.is_correct).length
+    const incorrectCount = questionResponseList.length - correctCount
+    const accuracy = questionResponseList.length
+      ? Math.round((correctCount / questionResponseList.length) * 100)
+      : null
 
-  const getStudentDisplayName = (summary: StudentSummary) => {
-    if (summary.profile?.full_name?.trim()) {
-      return summary.profile.full_name
+    return {
+      question,
+      responses: questionResponseList,
+      correctCount,
+      incorrectCount,
+      accuracy,
     }
-    if (summary.profile?.email) {
-      return summary.profile.email
-    }
-    return `${summary.studentId.substring(0, 8)}…`
-  }
+  })
 
-  const getStudentEmail = (summary: StudentSummary) => {
-    if (summary.profile?.email && summary.profile.email !== summary.profile.full_name) {
-      return summary.profile.email
-    }
-    return undefined
-  }
+  const strongestQuestion = questionInsights
+    .filter((item) => item.responses.length > 0)
+    .reduce<typeof questionInsights[number] | null>((best, current) => {
+      if (!best) return current
+      if ((current.accuracy ?? 0) > (best.accuracy ?? 0)) return current
+      return best
+    }, null)
 
-  studentSummaries.sort((a, b) => getStudentDisplayName(a).localeCompare(getStudentDisplayName(b)))
+  const weakestQuestion = questionInsights
+    .filter((item) => item.responses.length > 0)
+    .reduce<typeof questionInsights[number] | null>((worst, current) => {
+      if (!worst) return current
+      if ((current.accuracy ?? 100) < (worst.accuracy ?? 100)) return current
+      return worst
+    }, null)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6 md:p-10">
-      <div className="mx-auto max-w-6xl">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-sky-600/20 via-slate-950 to-slate-950" />
+      <div className="pointer-events-none absolute inset-0 opacity-35 [background:radial-gradient(rgba(148,163,184,0.12)_1px,transparent_1px)] [background-size:26px_26px]" />
+
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-10 px-6 py-10 md:px-10">
+        <header className="flex flex-col gap-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-4 md:items-center">
             <Link href="/dashboard">
-              <Button variant="ghost" size="icon">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="border border-white/10 bg-white/10 text-white hover:bg-white/20"
+              >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Lesson Analytics</h1>
-              <p className="text-gray-600">{lesson.title}</p>
-              <p className="text-sm text-gray-500">
-                {lesson.time_limit_minutes != null
-                  ? `Time limit: ${lesson.time_limit_minutes} minute${lesson.time_limit_minutes === 1 ? "" : "s"}`
-                  : "No time limit set"}
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-300">Lesson analytics</p>
+              <h1 className="mt-1 text-3xl font-semibold text-white">{lesson.title}</h1>
+              <p className="mt-2 text-sm text-slate-300">
+                Understand engagement, celebrate wins, and spot opportunities to improve this journey.
               </p>
             </div>
           </div>
-        </div>
+          <div className="flex flex-wrap items-center gap-2 md:justify-end">
+            {lesson.time_limit_minutes != null ? (
+              <Badge variant="secondary" className="border-white/10 bg-white/10 text-white">
+                Time limit: {lesson.time_limit_minutes} minute{lesson.time_limit_minutes === 1 ? "" : "s"}
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="border-white/10 bg-white/10 text-white">
+                Self-paced lesson
+              </Badge>
+            )}
+          </div>
+        </header>
 
-        {/* Stats Grid */}
-        <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-4">
-          <Card className="border-0 shadow-md">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Students</p>
-                  <p className="text-3xl font-bold text-gray-900">{totalStudents}</p>
-                </div>
-                <Users className="h-12 w-12 text-blue-500 opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            icon={<Users className="h-6 w-6" />}
+            iconClass="border-sky-400/30 bg-sky-500/10 text-sky-100"
+            label="Active learners"
+            value={totalStudents}
+            helper="Enrolled students who interacted with this lesson."
+          />
+          <StatCard
+            icon={<CheckCircle2 className="h-6 w-6" />}
+            iconClass="border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
+            label="Correct responses"
+            value={correctResponses}
+            helper={`${totalResponses || 0} total responses`}
+          />
+          <StatCard
+            icon={<BarChart3 className="h-6 w-6" />}
+            iconClass="border-violet-400/30 bg-violet-500/10 text-violet-100"
+            label="Average score"
+            value={`${averageScore}%`}
+            helper="Across the latest attempts per student."
+          />
+          <StatCard
+            icon={<XCircle className="h-6 w-6" />}
+            iconClass="border-rose-400/30 bg-rose-500/10 text-rose-100"
+            label="Needs review"
+            value={totalResponses - correctResponses}
+            helper="Responses recorded as incorrect."
+          />
+        </section>
 
-          <Card className="border-0 shadow-md">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Responses</p>
-                  <p className="text-3xl font-bold text-gray-900">{totalResponses}</p>
-                </div>
-                <CheckCircle2 className="h-12 w-12 text-green-500 opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-md">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Correct Answers</p>
-                  <p className="text-3xl font-bold text-gray-900">{correctResponses}</p>
-                </div>
-                <CheckCircle2 className="h-12 w-12 text-indigo-500 opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-md">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Average Score</p>
-                  <p className="text-3xl font-bold text-gray-900">{averageScore}%</p>
-                </div>
-                <BarChart3 className="h-12 w-12 text-purple-500 opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Student Performance */}
-        <div>
-          <h2 className="mb-6 text-2xl font-bold text-gray-900">Student Performance</h2>
-
-          {studentSummaries.length === 0 ? (
-            <Card className="border-0 shadow-md">
-              <CardContent className="py-12 text-center">
-                <p className="text-gray-600">No student responses yet.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="border-0 shadow-md">
-              <CardContent className="px-0 py-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50">
-                      <TableHead className="px-6 py-4">Student</TableHead>
-                      <TableHead className="px-6 py-4">Correct</TableHead>
-                      <TableHead className="px-6 py-4">Attempts</TableHead>
-                      <TableHead className="px-6 py-4">Score</TableHead>
+        <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <Card className="border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl backdrop-blur">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-white">Learner performance</CardTitle>
+              <CardDescription className="text-sm text-slate-300">
+                Track how each student performed and how many prompts they attempted.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {studentSummaries.length === 0 ? (
+                <p className="text-sm text-slate-300">No learner activity yet. Share the lesson to get started.</p>
+              ) : (
+                <Table className="text-sm">
+                  <TableHeader className="bg-white/5">
+                    <TableRow className="border-white/10 hover:bg-white/5">
+                      <TableHead className="text-slate-200">Learner</TableHead>
+                      <TableHead className="text-slate-200">Email</TableHead>
+                      <TableHead className="text-slate-200">Attempts</TableHead>
+                      <TableHead className="text-slate-200">Correct</TableHead>
+                      <TableHead className="text-right text-slate-200">Score</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {studentSummaries.map((summary) => (
-                      <TableRow key={summary.studentId}>
-                        <TableCell className="px-6 py-4">
-                          <div className="flex flex-col">
-                            <span className="font-medium text-gray-900">{getStudentDisplayName(summary)}</span>
-                            {getStudentEmail(summary) && (
-                              <span className="text-xs text-gray-500">{getStudentEmail(summary)}</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-6 py-4 text-gray-700">
-                          {totalQuestions > 0 ? `${summary.correct} / ${totalQuestions}` : summary.correct}
-                        </TableCell>
-                        <TableCell className="px-6 py-4 text-gray-700">{summary.attempts}</TableCell>
-                        <TableCell className="px-6 py-4">
+                      <TableRow key={summary.studentId} className="border-white/5 hover:bg-white/5">
+                        <TableCell className="text-slate-100">{getStudentDisplayName(summary)}</TableCell>
+                        <TableCell className="text-slate-400">{getStudentEmail(summary) ?? "—"}</TableCell>
+                        <TableCell className="text-slate-300">{summary.attempts}</TableCell>
+                        <TableCell className="text-slate-300">{summary.correct}</TableCell>
+                        <TableCell className="text-right">
                           <Badge
-                            className={`${
-                              summary.score >= 80
-                                ? "border-green-200 bg-green-50 text-green-700"
-                                : summary.score >= 60
-                                  ? "border-yellow-200 bg-yellow-50 text-yellow-700"
-                                  : "border-red-200 bg-red-50 text-red-700"
-                            }`}
-                            variant="outline"
+                            variant="secondary"
+                            className={`border-white/10 bg-white/10 ${summary.score >= 70 ? "text-emerald-100" : "text-amber-100"}`}
                           >
                             {summary.score}%
                           </Badge>
@@ -289,119 +287,214 @@ export default function LessonAnalytics({
                     ))}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Detailed Responses */}
-        {questions.length > 0 && studentSummaries.length > 0 && (
-          <div className="mt-12">
-            <h2 className="mb-6 text-2xl font-bold text-gray-900">Detailed Responses</h2>
-            <Accordion type="multiple" className="divide-y rounded-lg border bg-white shadow-md">
-              {studentSummaries.map((summary) => (
-                <AccordionItem value={summary.studentId} key={summary.studentId} className="border-0">
-                  <AccordionTrigger className="px-6">
-                    <div className="flex flex-1 flex-col gap-1 text-left">
-                      <div className="flex items-center gap-3">
-                        <span className="text-base font-semibold text-gray-900">{getStudentDisplayName(summary)}</span>
-                        <Badge variant="outline" className="border-gray-200 bg-gray-50 text-gray-600">
-                          {summary.correct} correct · {summary.attempts} attempts
-                        </Badge>
-                      </div>
-                      {getStudentEmail(summary) && (
-                        <span className="text-xs text-gray-500">{getStudentEmail(summary)}</span>
-                      )}
+          <Card className="border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl backdrop-blur">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-white">Insight highlights</CardTitle>
+              <CardDescription className="text-sm text-slate-300">
+                Celebrate wins and identify follow-up opportunities.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <InsightBlock
+                icon={<Sparkles className="h-5 w-5" />}
+                title="Lesson summary"
+                description={`${totalResponses || 0} responses across ${totalStudents} learners`}
+              />
+              {strongestQuestion ? (
+                <InsightBlock
+                  icon={<TrendingUp className="h-5 w-5" />}
+                  title="Strongest question"
+                  description={`“${strongestQuestion.question.question_text}” — ${strongestQuestion.accuracy}% accuracy`}
+                />
+              ) : (
+                <InsightBlock
+                  icon={<TrendingUp className="h-5 w-5" />}
+                  title="Strongest question"
+                  description="Not enough responses yet to highlight strengths."
+                />
+              )}
+              {weakestQuestion ? (
+                <InsightBlock
+                  icon={<AlertTriangle className="h-5 w-5" />}
+                  title="Needs support"
+                  description={`“${weakestQuestion.question.question_text}” — ${weakestQuestion.accuracy}% accuracy`}
+                />
+              ) : (
+                <InsightBlock
+                  icon={<AlertTriangle className="h-5 w-5" />}
+                  title="Needs support"
+                  description="Once learners attempt more questions, we’ll surface them here."
+                />
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-2xl font-semibold text-white">Question breakdown</h2>
+            <p className="text-sm text-slate-300">
+              Drill into each prompt to understand misconceptions and adjust next steps.
+            </p>
+          </div>
+          <Accordion type="single" collapsible className="mt-6 space-y-3">
+            {questionInsights.map(({ question, responses: questionResponsesList, correctCount, incorrectCount, accuracy }) => {
+              const total = questionResponsesList.length
+              const accuracyLabel =
+                accuracy === null ? "Awaiting data" : `${accuracy}% accuracy (${correctCount}/${total})`
+
+              return (
+                <AccordionItem
+                  key={question.id}
+                  value={question.id}
+                  className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/60 text-slate-100"
+                >
+                  <AccordionTrigger className="px-5 py-4 text-left text-base font-semibold text-white hover:bg-white/5">
+                    <div className="flex flex-col gap-1">
+                      <span>{question.question_text}</span>
+                      <span className="text-xs text-slate-400">{accuracyLabel}</span>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-6">
-                    <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-4">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Question</TableHead>
-                            <TableHead>Your Answer</TableHead>
-                            <TableHead>Correct Answer</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Last Attempt</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {questions.map((question) => {
-                            const response = summary.responses.get(question.id)
-                            const status = response ? (response.is_correct ? "correct" : "incorrect") : "not_attempted"
-
-                            const statusBadgeClass =
-                              status === "correct"
-                                ? "border-green-200 bg-green-50 text-green-700"
-                                : status === "incorrect"
-                                  ? "border-red-200 bg-red-50 text-red-700"
-                                  : "border-gray-200 bg-gray-50 text-gray-600"
-
-                            const statusIcon =
-                              status === "correct" ? (
-                                <CheckCircle2 className="h-4 w-4" />
-                              ) : status === "incorrect" ? (
-                                <XCircle className="h-4 w-4" />
-                              ) : (
-                                <MinusCircle className="h-4 w-4" />
-                              )
-
-                            return (
-                              <TableRow key={question.id}>
-                                <TableCell>
-                                  <div className="flex flex-col gap-2">
-                                    <span className="font-medium text-gray-900">{question.question_text}</span>
-                                    <div className="flex flex-wrap gap-2">
-                                      <Badge variant="outline" className="border-gray-200 bg-white text-gray-600">
-                                        {formatQuestionType(question.question_type)}
-                                      </Badge>
-                                      {status === "incorrect" && question.explanation && (
-                                        <span className="text-xs text-red-600">{question.explanation}</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-gray-700">
-                                  {formatAnswer(questionMap.get(question.id), response?.answer)}
-                                </TableCell>
-                                <TableCell className="text-gray-700">
-                                  {formatAnswer(questionMap.get(question.id), question.correct_answer)}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="outline" className={statusBadgeClass}>
-                                    {statusIcon}
-                                    {status === "correct"
-                                      ? "Correct"
-                                      : status === "incorrect"
-                                        ? "Incorrect"
-                                        : "Not attempted"}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-gray-600">
-                                  {response?.created_at ? new Date(response.created_at).toLocaleString() : "—"}
-                                </TableCell>
-                              </TableRow>
-                            )
-                          })}
-                        </TableBody>
-                      </Table>
+                  <AccordionContent className="space-y-4 px-5 pb-5 text-sm text-slate-200">
+                    <div className="flex flex-wrap gap-3 text-xs">
+                      <Badge variant="secondary" className="border-white/10 bg-white/10 text-slate-100">
+                        {formatQuestionType(question.question_type)}
+                      </Badge>
+                      <Badge variant="secondary" className="border-emerald-400/40 bg-emerald-500/10 text-emerald-100">
+                        Correct answers: {correctCount}
+                      </Badge>
+                      <Badge variant="secondary" className="border-rose-400/40 bg-rose-500/10 text-rose-100">
+                        Incorrect: {incorrectCount}
+                      </Badge>
                     </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {["A", "B", "C", "D"].map((key) => {
+                        const label = optionLabel(question, key as "A" | "B" | "C" | "D")
+                        if (!label) return null
+                        const isCorrectOption = key === question.correct_answer
+                        return (
+                          <div
+                            key={key}
+                            className={`rounded-xl border px-3 py-3 ${
+                              isCorrectOption
+                                ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-100"
+                                : "border-white/10 bg-white/5 text-slate-200"
+                            }`}
+                          >
+                            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{key}</p>
+                            <p className="text-sm font-medium">{label}</p>
+                            {isCorrectOption && <p className="mt-1 text-xs text-emerald-200">Correct answer</p>}
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {question.explanation && (
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+                        <p className="font-semibold text-white">Teacher explanation</p>
+                        <p className="mt-2 text-slate-200">{question.explanation}</p>
+                      </div>
+                    )}
                   </AccordionContent>
                 </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
-        )}
+              )
+            })}
+          </Accordion>
+        </section>
+      </div>
+    </div>
+  )
+}
 
-        {/* Back Button */}
-        <div className="mt-10">
-          <Link href="/dashboard">
-            <Button variant="outline" className="bg-transparent">
-              Back to Dashboard
-            </Button>
-          </Link>
+function getStudentDisplayName(summary: StudentSummary) {
+  if (summary.profile?.full_name?.trim()) {
+    return summary.profile.full_name
+  }
+  if (summary.profile?.email) {
+    return summary.profile.email
+  }
+  return `${summary.studentId.substring(0, 8)}…`
+}
+
+function getStudentEmail(summary: StudentSummary) {
+  if (summary.profile?.email && summary.profile.email !== summary.profile.full_name) {
+    return summary.profile.email
+  }
+  return undefined
+}
+
+function formatQuestionType(type: string) {
+  switch (type) {
+    case "yes-no-not-given":
+      return "Yes / No / Not Given"
+    case "multiple-choice":
+      return "Multiple choice"
+    default:
+      return type
+  }
+}
+
+function optionLabel(question: Question, key: "A" | "B" | "C" | "D") {
+  const lookup: Record<"A" | "B" | "C" | "D", string> = {
+    A: question.option_a,
+    B: question.option_b,
+    C: question.option_c,
+    D: question.option_d,
+  }
+  return lookup[key]
+}
+
+function StatCard({
+  icon,
+  iconClass,
+  label,
+  value,
+  helper,
+}: {
+  icon: React.ReactNode
+  iconClass: string
+  label: string
+  value: string | number
+  helper: string
+}) {
+  return (
+    <Card className="border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl backdrop-blur">
+      <CardContent className="space-y-3 p-6">
+        <div className="flex items-center gap-3">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${iconClass}`}>{icon}</div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">{label}</p>
+            <p className="text-2xl font-semibold text-white">{value}</p>
+          </div>
         </div>
+        <p className="text-xs text-slate-400">{helper}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function InsightBlock({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode
+  title: string
+  description: string
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200">
+        {icon}
+      </div>
+      <div>
+        <p className="font-semibold text-white">{title}</p>
+        <p className="text-slate-300">{description}</p>
       </div>
     </div>
   )

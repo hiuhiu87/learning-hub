@@ -288,123 +288,144 @@ export default function LessonLearner({
     : null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6 md:p-10">
-      <div className="mx-auto max-w-4xl">
-        {/* Header */}
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
+    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-indigo-500/20 via-slate-950 to-slate-950" />
+      <div className="pointer-events-none absolute inset-0 opacity-35 [background:radial-gradient(rgba(148,163,184,0.12)_1px,transparent_1px)] [background-size:26px_26px]" />
+
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-10 px-6 py-10 md:px-10">
+        <header className="flex flex-col gap-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-4 md:items-center">
             <Link href="/dashboard">
-              <Button variant="ghost" size="icon">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="border border-white/10 bg-white/10 text-white hover:bg-white/20"
+              >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{lesson.title}</h1>
-              <p className="text-gray-600">{lesson.description}</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-300">Learning journey</p>
+              <h1 className="mt-1 text-3xl font-semibold text-white">{lesson.title}</h1>
+              <p className="mt-2 text-sm text-slate-300">
+                {lesson.description || "Review flashcards, then test your understanding with adaptive checks."}
+              </p>
             </div>
           </div>
-          <div className="flex flex-col items-stretch gap-2 md:items-end">
+          <div className="flex flex-wrap items-center gap-3 md:justify-end">
             {hasTimeLimit && timeLimitMinutes !== null && (
-              <span className="text-sm text-gray-600">
-                Time limit: {timeLimitMinutes} minute
-                {timeLimitMinutes === 1 ? "" : "s"}
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-100">
+                <Timer className="h-4 w-4" />
+                {timeLimitMinutes} minute{timeLimitMinutes === 1 ? "" : "s"} limit
               </span>
             )}
-            <div className="flex gap-2">
-              <Button
-                variant={isFlashcardOnly ? "outline" : "default"}
-                className={isFlashcardOnly ? "bg-transparent" : ""}
-                onClick={() => setIsFlashcardOnly(false)}
-                disabled={!isFlashcardOnly}
-              >
-                Full Lesson
-              </Button>
-              <Button
-                variant={isFlashcardOnly ? "default" : "outline"}
-                className={!isFlashcardOnly ? "bg-transparent" : ""}
-                onClick={() => setIsFlashcardOnly(true)}
-                disabled={isFlashcardOnly}
-              >
-                Flashcards Only
-              </Button>
-            </div>
+            <Button
+              onClick={() => setIsFlashcardOnly(false)}
+              disabled={!isFlashcardOnly}
+              className={`gap-2 ${
+                isFlashcardOnly
+                  ? "border border-sky-500/40 bg-sky-500/10 text-sky-100 hover:bg-sky-500/20"
+                  : "bg-sky-500 text-white hover:bg-sky-400 disabled:bg-sky-500"
+              }`}
+            >
+              Full lesson
+            </Button>
+            <Button
+              onClick={() => setIsFlashcardOnly(true)}
+              disabled={isFlashcardOnly}
+              className={`gap-2 ${
+                isFlashcardOnly
+                  ? "bg-emerald-500 text-slate-900 hover:bg-emerald-400 disabled:bg-emerald-500"
+                  : "border border-emerald-400/40 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20"
+              }`}
+            >
+              Flashcards only
+            </Button>
           </div>
-        </div>
+        </header>
 
-        {/* Progress Stats */}
-        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-0 shadow-md">
-            <CardContent className="pt-6">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Card className="border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl backdrop-blur">
+            <CardContent className="space-y-3 p-6">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-8 w-8 text-green-500" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-400/30 bg-emerald-400/10 text-emerald-200">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
                 <div>
-                  <p className="text-sm text-gray-600">Flashcards Reviewed</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Flashcards reviewed</p>
+                  <p className="text-2xl font-semibold text-white">
                     {reviewedFlashcards}/{flashcards.length}
                   </p>
                 </div>
               </div>
+              <p className="text-xs text-slate-400">Mark tricky cards to replay them until you feel confident.</p>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-md">
-            <CardContent className="pt-6">
+
+          <Card className="border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl backdrop-blur">
+            <CardContent className="space-y-3 p-6">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-8 w-8 text-blue-500" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-sky-400/30 bg-sky-400/15 text-sky-100">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
                 <div>
-                  <p className="text-sm text-gray-600">Correct Answers</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {correctAnswers}/{totalQuestions}
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Correct answers</p>
+                  <p className="text-2xl font-semibold text-white">
+                    {correctAnswers}/{totalQuestions || 0}
                   </p>
                 </div>
               </div>
+              <p className="text-xs text-slate-400">
+                Reflect on why each answer is right to reinforce future recall.
+              </p>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-md">
-            <CardContent className="pt-6">
+
+          <Card className="border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl backdrop-blur">
+            <CardContent className="space-y-3 p-6">
               <div className="flex items-center gap-3">
-                <History className="h-8 w-8 text-purple-500" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-400/15 text-violet-100">
+                  <History className="h-5 w-5" />
+                </div>
                 <div>
-                  <p className="text-sm text-gray-600">Completed Attempts</p>
-                  <p className="text-2xl font-bold text-gray-900">{completedAttemptsCount}</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Completed attempts</p>
+                  <p className="text-2xl font-semibold text-white">{completedAttemptsCount}</p>
                 </div>
               </div>
-              {attemptStatusLabel && (
-                <p className="mt-3 text-sm text-gray-600">{attemptStatusLabel}</p>
-              )}
+              {attemptStatusLabel && <p className="text-xs text-slate-400">{attemptStatusLabel}</p>}
             </CardContent>
           </Card>
+
           {hasTimeLimit && (
-            <Card className="border-0 shadow-md">
-              <CardContent className="pt-6">
+            <Card className="border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl backdrop-blur">
+              <CardContent className="space-y-3 p-6">
                 <div className="flex items-center gap-3">
-                  <Timer className="h-8 w-8 text-orange-500" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-400/15 text-amber-100">
+                    <Timer className="h-5 w-5" />
+                  </div>
                   <div>
-                    <p className="text-sm text-gray-600">Time Remaining</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Time remaining</p>
+                    <p className="text-2xl font-semibold text-white">
                       {isFlashcardOnly
                         ? timeRemainingLabel ?? "Paused"
                         : timeRemainingLabel ?? (isTimeExpired ? "00:00" : "—")}
                     </p>
                   </div>
                 </div>
-                {timeStatusText && (
-                  <p className="mt-3 text-sm text-gray-600">{timeStatusText}</p>
-                )}
+                {timeStatusText && <p className="text-xs text-slate-400">{timeStatusText}</p>}
               </CardContent>
             </Card>
           )}
-        </div>
+        </section>
 
-        {/* Attempt History */}
-        <Card className="mb-8 border-0 shadow-md">
+        <Card className="border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl backdrop-blur">
           <CardHeader>
-            <CardTitle>Attempt History</CardTitle>
+            <CardTitle className="text-xl font-semibold text-white">Attempt history</CardTitle>
           </CardHeader>
           <CardContent>
             {attemptsToDisplay.length === 0 ? (
-              <p className="text-sm text-gray-600">
-                No completed attempts yet. Finish the practice questions to start tracking your
-                progress.
+              <p className="text-sm text-slate-300">
+                Finish the practice set to start tracking your progress over time.
               </p>
             ) : (
               <ul className="space-y-4">
@@ -420,7 +441,7 @@ export default function LessonLearner({
                     if (percent !== null && prevPercent !== null) {
                       const delta = percent - prevPercent
                       if (delta !== 0) {
-                        deltaLabel = `${delta > 0 ? "+" : ""}${delta}% vs previous`
+                        deltaLabel = `${delta > 0 ? "+" : ""}${delta}% compared to last time`
                       }
                     }
                   }
@@ -428,15 +449,15 @@ export default function LessonLearner({
                   return (
                     <li
                       key={attempt.id}
-                      className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                      className="rounded-3xl border border-white/10 bg-white/5 p-5 text-sm text-slate-200"
                     >
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="font-semibold text-gray-900">Attempt #{attemptNumber}</span>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-base font-semibold text-white">Attempt #{attemptNumber}</span>
+                        <span className="text-xs uppercase tracking-[0.2em] text-slate-400">
                           {formatTimestamp(attempt.completed_at ?? attempt.created_at)}
                         </span>
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-700">
+                      <div className="mt-3 flex flex-wrap gap-4">
                         <span>
                           {attempt.total_questions > 0
                             ? `Score: ${attempt.correct_answers}/${attempt.total_questions}${
@@ -446,7 +467,7 @@ export default function LessonLearner({
                         </span>
                         <span>Flashcards reviewed: {flashcardsReviewed}</span>
                         {deltaLabel && (
-                          <span className={deltaLabel.includes("+") ? "text-green-600" : "text-red-600"}>
+                          <span className={deltaLabel.startsWith("+") ? "text-emerald-300" : "text-rose-300"}>
                             {deltaLabel}
                           </span>
                         )}
@@ -459,74 +480,80 @@ export default function LessonLearner({
           </CardContent>
         </Card>
 
-        {/* Learning Content */}
         {isFlashcardOnly ? (
-          <div className="mb-8 space-y-4">
-            <Card className="border-0 shadow-md bg-blue-50">
-              <CardContent className="pt-6">
-                <p className="text-sm text-blue-800">
-                  Flashcard-only mode is active. Practice questions and lesson timers are hidden.
-                </p>
+          <section className="space-y-4">
+            <Card className="border-sky-400/30 bg-sky-500/10 text-sky-100">
+              <CardContent className="p-5 text-sm">
+                Flashcard-only mode is active. Practice questions and timers are hidden so you can focus on recall.
               </CardContent>
             </Card>
             {flashcards.length === 0 ? (
-              <Card className="border-0 shadow-md">
-                <CardContent className="py-12 text-center">
-                  <p className="text-gray-600">No flashcards in this lesson yet.</p>
+              <Card className="border-white/10 bg-white/5 text-slate-200">
+                <CardContent className="py-12 text-center text-sm">
+                  This lesson doesn’t have flashcards yet.
                 </CardContent>
               </Card>
             ) : (
               <FlashcardLearner flashcards={flashcards} onMarkedChange={handleMarkedChange} />
             )}
-          </div>
+          </section>
         ) : (
-          <Tabs defaultValue="flashcards" className="mb-8">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="flashcards">Flashcards ({flashcards.length})</TabsTrigger>
-              <TabsTrigger value="practice">Practice Questions ({totalQuestions})</TabsTrigger>
-            </TabsList>
+          <section className="space-y-6">
+            <Tabs defaultValue="flashcards" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2 gap-2 rounded-full border border-white/10 bg-white/5 p-1">
+                <TabsTrigger
+                  value="flashcards"
+                  className="rounded-full data-[state=active]:bg-sky-500 data-[state=active]:text-white"
+                >
+                  Flashcards ({flashcards.length})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="practice"
+                  className="rounded-full data-[state=active]:bg-emerald-500 data-[state=active]:text-white"
+                >
+                  Practice questions ({totalQuestions})
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="flashcards">
-              {flashcards.length === 0 ? (
-                <Card className="border-0 shadow-md">
-                  <CardContent className="py-12 text-center">
-                    <p className="text-gray-600">No flashcards in this lesson yet.</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <FlashcardLearner flashcards={flashcards} onMarkedChange={handleMarkedChange} />
-              )}
-            </TabsContent>
+              <TabsContent value="flashcards">
+                {flashcards.length === 0 ? (
+                  <Card className="border-white/10 bg-white/5 text-slate-200">
+                    <CardContent className="py-12 text-center text-sm">This lesson doesn’t have flashcards yet.</CardContent>
+                  </Card>
+                ) : (
+                  <FlashcardLearner flashcards={flashcards} onMarkedChange={handleMarkedChange} />
+                )}
+              </TabsContent>
 
-            <TabsContent value="practice">
-              {questions.length === 0 ? (
-                <Card className="border-0 shadow-md">
-                  <CardContent className="py-12 text-center">
-                    <p className="text-gray-600">No practice questions in this lesson yet.</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <QuestionPractice
-                  questions={questions}
-                  onAnswerQuestion={handleQuestionCorrect}
-                  isLocked={isTimeExpired}
-                  lockMessage={
-                    isTimeExpired
-                      ? "Time is up. You can review the questions, but new answers won't be recorded."
-                      : undefined
-                  }
-                />
-              )}
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="practice">
+                {questions.length === 0 ? (
+                  <Card className="border-white/10 bg-white/5 text-slate-200">
+                    <CardContent className="py-12 text-center text-sm">Practice questions are coming soon.</CardContent>
+                  </Card>
+                ) : (
+                  <QuestionPractice
+                    questions={questions}
+                    onAnswerQuestion={handleQuestionCorrect}
+                    isLocked={isTimeExpired}
+                    lockMessage={
+                      isTimeExpired
+                        ? "Time is up. You can review the questions, but new answers will not be recorded."
+                        : undefined
+                    }
+                  />
+                )}
+              </TabsContent>
+            </Tabs>
+          </section>
         )}
 
-        {/* Back Button */}
-        <Link href="/dashboard">
-          <Button variant="outline" className="w-full bg-transparent">
-            Back to Dashboard
-          </Button>
-        </Link>
+        <footer className="flex justify-end">
+          <Link href="/dashboard">
+            <Button className="gap-2 border border-white/10 bg-white/10 text-slate-100 hover:bg-white/20">
+              Back to dashboard
+            </Button>
+          </Link>
+        </footer>
       </div>
     </div>
   )
