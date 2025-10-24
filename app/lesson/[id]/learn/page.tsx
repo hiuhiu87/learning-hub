@@ -28,8 +28,11 @@ export default async function LearnPage({ params }: { params: { id: string } }) 
     redirect("/dashboard")
   }
 
-  const [{ data: flashcards }, { data: questions }, { data: attempts }] = await Promise.all([
-    supabase.from("flashcards").select("*").eq("lesson_id", params.id).order("order_index"),
+  const [flashcardResponse, questionsResponse, attemptsResponse] = await Promise.all([
+    supabase
+      .from("flashcards")
+      .select("id", { count: "exact", head: true })
+      .eq("lesson_id", params.id),
     supabase.from("questions").select("*").eq("lesson_id", params.id).order("order_index"),
     supabase
       .from("lesson_attempts")
@@ -39,14 +42,18 @@ export default async function LearnPage({ params }: { params: { id: string } }) 
       .order("created_at", { ascending: false }),
   ])
 
+  const flashcardCount = flashcardResponse.count ?? 0
+  const questions = questionsResponse.data ?? []
+  const attempts = attemptsResponse.data ?? []
+
   return (
     <LessonLearner
       lessonId={params.id}
       lesson={lesson}
-      flashcards={flashcards || []}
-      questions={questions || []}
+      questions={questions}
       userId={authData.user.id}
-      previousAttempts={attempts || []}
+      previousAttempts={attempts}
+      flashcardCount={flashcardCount}
     />
   )
 }

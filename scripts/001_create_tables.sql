@@ -3,18 +3,18 @@
 -- Author: Tim
 -- =====================================================================
 
+-- ========================
+-- A) RESET (SAFE DROPS)
+-- ========================
 begin;
 
--- -------------------------------------------------
--- A) RESET: DROP TOÀN BỘ ĐỐI TƯỢNG DO SCRIPT NÀY TẠO
--- -------------------------------------------------
-
--- 0) Drop triggers trước (tránh phụ thuộc)
-do $$
+-- Drop triggers if present (avoid dependency issues)
+do $ddl$
 begin
-  -- Trigger đồng bộ profiles khi tạo user mới (nằm trên auth.users)
+  -- Trigger on auth.users -> public.profiles sync
   if exists (
-    select 1 from pg_trigger t
+    select 1
+    from pg_trigger t
     join pg_class c on c.oid = t.tgrelid
     join pg_namespace n on n.oid = c.relnamespace
     where t.tgname = 'on_auth_user_created'
@@ -24,9 +24,10 @@ begin
     execute 'drop trigger if exists on_auth_user_created on auth.users';
   end if;
 
-  -- Trigger updated_at trên lessons (nếu có)
+  -- Trigger for lessons.updated_at
   if exists (
-    select 1 from pg_trigger t
+    select 1
+    from pg_trigger t
     join pg_class c on c.oid = t.tgrelid
     join pg_namespace n on n.oid = c.relnamespace
     where t.tgname = 'trg_lessons_set_updated_at'
@@ -35,66 +36,66 @@ begin
   ) then
     execute 'drop trigger if exists trg_lessons_set_updated_at on public.lessons';
   end if;
-end$$;
+end
+$ddl$;
 
--- 1) Drop functions (nếu còn)
+-- Drop functions (CASCADE clears dependent objects/policies if any)
 drop function if exists public.handle_new_user_profile() cascade;
 drop function if exists public.tg_set_updated_at() cascade;
 drop function if exists public.is_enrolled(uuid, uuid) cascade;
 drop function if exists public.is_lesson_teacher(uuid, uuid) cascade;
 
--- 2) Drop tables (theo thứ tự phụ thuộc, dùng CASCADE để gỡ policy/index)
-drop table if exists public.student_responses cascade;
-drop table if exists public.questions cascade;
-drop table if exists public.flashcards cascade;
-drop table if exists public.lesson_enrollments cascade;
-drop table if exists public.lessons cascade;
-drop table if exists public.profiles cascade;
+-- Drop tables in dependency order
+drop table if exists public.student_responses   cascade;
+drop table if exists public.lesson_attempts     cascade;
+drop table if exists public.questions           cascade;
+drop table if exists public.flashcards          cascade;
+drop table if exists public.lesson_enrollments  cascade;
+drop table if exists public.lessons             cascade;
+drop table if exists public.profiles            cascade;
 
--- 3) Drop types (enum)
+-- Drop types
 drop type if exists public.user_role;
-
--- (Không drop extension hệ thống)
--- drop extension if exists pgcrypto; -- KHÔNG KHUYÊN DÙNG
 
 commit;
 
--- -------------------------------------------------
--- B) RECREATE: TẠO LẠI TOÀN BỘ
--- -------------------------------------------------
+-- ========================
+-- B) RECREATE
+-- ========================
 
 -- 0) EXTENSIONS
-create extension if not exists pgcrypto;
+create extension if not exists pgcrypto; -- for gen_random_uuid()
 
 -- 1) TYPES
-do $$
+do $ddl$
 begin
   if not exists (select 1 from pg_type where typname = 'user_role') then
     create type public.user_role as enum ('teacher', 'student');
   end if;
-end$$;
+end
+$ddl$;
 
 -- 2) TABLES
-
 -- profiles
 create table if not exists public.profiles (
-  id          uuid primary key references auth.users(id) on delete cascade,
-  email       text not null,
-  full_name   text,
-  role        public.user_role not null default 'student',
-  created_at  timestamptz not null default now()
+  id         uuid primary key references auth.users(id) on delete cascade,
+  email      text not null,
+  full_name  text,
+  role       public.user_role not null default 'student',
+  created_at timestamptz not null default now()
 );
 
 -- lessons
 create table if not exists public.lessons (
-  id          uuid primary key default gen_random_uuid(),
-  teacher_id  uuid not null references public.profiles(id) on delete cascade,
-  title       text not null,
-  description text,
+  id                 uuid primary key default gen_random_uuid(),
+  teacher_id         uuid not null references public.profiles(id) on delete cascade,
+  title              text not null,
+  description        text,
   time_limit_minutes integer,
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now(),
-  constraint lessons_time_limit_positive check (time_limit_minutes is null or time_limit_minutes > 0)
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now(),
+  constraint lessons_time_limit_positive
+    check (time_limit_minutes is null or time_limit_minutes > 0)
 );
 
 -- lesson_enrollments
@@ -130,7 +131,8 @@ create table if not exists public.questions (
   explanation    text,
   order_index    integer,
   created_at     timestamptz not null default now(),
-  constraint questions_type_check check (question_type in ('multiple-choice', 'yes-no-not-given'))
+  constraint questions_type_check
+    check (question_type in ('multiple-choice', 'yes-no-not-given'))
 );
 
 -- student_responses
@@ -144,7 +146,7 @@ create table if not exists public.student_responses (
   created_at  timestamptz not null default now()
 );
 
--- lesson_attempts
+-- lesson_attempts (aggregates/progress per attempt)
 create table if not exists public.lesson_attempts (
   id                  uuid primary key default gen_random_uuid(),
   student_id          uuid not null references public.profiles(id) on delete cascade,
@@ -156,49 +158,55 @@ create table if not exists public.lesson_attempts (
   completed_at        timestamptz
 );
 
--- 3) TRIGGERS / UTILS
+-- 3) TRIGGERS + FUNCTIONS (UTILS)
 
--- updated_at on lessons
+-- Keep lessons.updated_at fresh
 create or replace function public.tg_set_updated_at()
 returns trigger
 language plpgsql
-as $$
+as $fn$
 begin
   new.updated_at := now();
   return new;
-end;
-$$;
+end
+$fn$;
 
 create trigger trg_lessons_set_updated_at
   before update on public.lessons
   for each row
   execute function public.tg_set_updated_at();
 
--- Sync profiles from auth.users
+-- Sync public.profiles from auth.users
 create or replace function public.handle_new_user_profile()
 returns trigger
 language plpgsql
 security definer
 set search_path = public, auth
-as $$
+as $fn$
 begin
   insert into public.profiles (id, email, full_name, role)
   values (
     new.id,
-    coalesce(nullif(new.email, ''), nullif(new.raw_user_meta_data->>'email', ''), new.raw_user_meta_data->>'sub'),
-    coalesce(nullif(new.raw_user_meta_data->>'full_name', ''),
-             nullif(new.raw_user_meta_data->>'name', ''),
-             new.email),
+    coalesce(
+      nullif(new.email, ''),
+      nullif(new.raw_user_meta_data->>'email', ''),
+      new.raw_user_meta_data->>'sub'
+    ),
+    coalesce(
+      nullif(new.raw_user_meta_data->>'full_name', ''),
+      nullif(new.raw_user_meta_data->>'name', ''),
+      new.email
+    ),
     coalesce(nullif(new.raw_user_meta_data->>'role', ''), 'student')::public.user_role
   )
-  on conflict (id) do update set
-    email = excluded.email,
-    full_name = excluded.full_name,
-    role = excluded.role;
+  on conflict (id) do update
+    set email     = excluded.email,
+        full_name = excluded.full_name,
+        role      = excluded.role;
 
   return new;
-end;
-$$;
+end
+$fn$;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
@@ -209,60 +217,57 @@ create trigger on_auth_user_created
 -- 4) INDEXES
 create index if not exists idx_lesson_enrollments_lesson  on public.lesson_enrollments (lesson_id);
 create index if not exists idx_lesson_enrollments_student on public.lesson_enrollments (student_id);
-create index if not exists idx_flashcards_lesson         on public.flashcards (lesson_id);
-create index if not exists idx_questions_lesson          on public.questions (lesson_id);
-create index if not exists idx_responses_student_lesson  on public.student_responses (student_id, lesson_id);
-create index if not exists idx_attempts_student_lesson   on public.lesson_attempts (student_id, lesson_id);
+create index if not exists idx_flashcards_lesson          on public.flashcards (lesson_id);
+create index if not exists idx_questions_lesson           on public.questions (lesson_id);
+create index if not exists idx_responses_student_lesson   on public.student_responses (student_id, lesson_id);
+create index if not exists idx_attempts_student_lesson    on public.lesson_attempts (student_id, lesson_id);
 
--- 5) RLS ENABLE
-alter table if exists public.profiles            enable row level security;
-alter table if exists public.lessons             enable row level security;
-alter table if exists public.lesson_enrollments  enable row level security;
-alter table if exists public.flashcards          enable row level security;
-alter table if exists public.questions           enable row level security;
-alter table if exists public.student_responses   enable row level security;
-alter table if exists public.lesson_attempts     enable row level security;
+-- 5) ENABLE RLS
+alter table public.profiles           enable row level security;
+alter table public.lessons            enable row level security;
+alter table public.lesson_enrollments enable row level security;
+alter table public.flashcards         enable row level security;
+alter table public.questions          enable row level security;
+alter table public.student_responses  enable row level security;
+alter table public.lesson_attempts    enable row level security;
 
--- 6) HELPER FUNCTIONS (SECURITY DEFINER; stable)
+-- 6) SECURITY-HELPER FUNCTIONS (security definer; stable)
 create or replace function public.is_enrolled(p_lesson_id uuid, p_uid uuid)
 returns boolean
-language sql
-stable
+language sql stable
 security definer
 set search_path = public
-as $$
+as $sql$
   select exists (
     select 1
     from public.lesson_enrollments le
     where le.lesson_id = p_lesson_id
       and le.student_id = p_uid
-  );
-$$;
+  )
+$sql$;
 revoke all on function public.is_enrolled(uuid, uuid) from public;
 
 create or replace function public.is_lesson_teacher(p_lesson_id uuid, p_uid uuid)
 returns boolean
-language sql
-stable
+language sql stable
 security definer
 set search_path = public
-as $$
+as $sql$
   select exists (
     select 1
     from public.lessons l
     where l.id = p_lesson_id
       and l.teacher_id = p_uid
-  );
-$$;
+  )
+$sql$;
 revoke all on function public.is_lesson_teacher(uuid, uuid) from public;
 
 -- 7) POLICIES
-
 -- PROFILES
-drop policy if exists profiles_select_own on public.profiles;
-drop policy if exists profiles_select_teachers_students on public.profiles;
-drop policy if exists profiles_insert_own on public.profiles;
-drop policy if exists profiles_update_own on public.profiles;
+drop policy if exists profiles_select_own                 on public.profiles;
+drop policy if exists profiles_select_teachers_students   on public.profiles;
+drop policy if exists profiles_insert_own                 on public.profiles;
+drop policy if exists profiles_update_own                 on public.profiles;
 
 create policy profiles_select_own
   on public.profiles for select
@@ -432,7 +437,7 @@ create policy questions_delete_teacher
   );
 
 -- STUDENT_RESPONSES
-drop policy if exists sr_insert_own on public.student_responses;
+drop policy if exists sr_insert_own        on public.student_responses;
 drop policy if exists sr_select_own_or_teacher on public.student_responses;
 
 create policy sr_insert_own
@@ -451,8 +456,8 @@ create policy sr_select_own_or_teacher
   );
 
 -- LESSON_ATTEMPTS
-drop policy if exists la_insert_own on public.lesson_attempts;
-drop policy if exists la_update_own on public.lesson_attempts;
+drop policy if exists la_insert_own   on public.lesson_attempts;
+drop policy if exists la_update_own   on public.lesson_attempts;
 drop policy if exists la_select_visible on public.lesson_attempts;
 
 create policy la_insert_own
@@ -474,18 +479,18 @@ create policy la_select_visible
     )
   );
 
--- -------------------------------------------------
--- C) (OPTIONAL) QUICK VERIFY — comment-out in prod
--- -------------------------------------------------
--- -- Kiểm tra trigger
+-- ========================
+-- C) QUICK VERIFY (optional)
+-- ========================
+-- -- Triggers
 -- select t.tgname, n.nspname as table_schema, c.relname as table_name
 -- from pg_trigger t
 -- join pg_class c on t.tgrelid = c.oid
 -- join pg_namespace n on c.relnamespace = n.oid
 -- where t.tgname in ('on_auth_user_created','trg_lessons_set_updated_at');
 --
--- -- Kiểm tra function
--- select proname, pg_get_functiondef(p.oid)
+-- -- Functions
+-- select proname
 -- from pg_proc p
 -- join pg_namespace n on p.pronamespace = n.oid
 -- where n.nspname = 'public'
