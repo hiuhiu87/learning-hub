@@ -3,7 +3,13 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,7 +63,9 @@ export default function LessonEditor({
     initialLesson?.description || ""
   );
   const [timeLimit, setTimeLimit] = useState(
-    initialLesson?.time_limit_minutes ? String(initialLesson.time_limit_minutes) : ""
+    initialLesson?.time_limit_minutes
+      ? String(initialLesson.time_limit_minutes)
+      : ""
   );
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [questions, setQuestions] = useState<LessonQuestion[]>([]);
@@ -98,11 +106,11 @@ export default function LessonEditor({
         if (questionData)
           setQuestions(
             questionData.map(rawQuestion => {
-              const question = rawQuestion as LessonQuestion
+              const question = rawQuestion as LessonQuestion;
               const base: LessonQuestion = {
                 ...question,
                 question_type: question.question_type || "multiple-choice",
-              }
+              };
               if (base.question_type === "yes-no-not-given") {
                 return {
                   ...base,
@@ -110,9 +118,9 @@ export default function LessonEditor({
                   option_b: base.option_b || "No",
                   option_c: base.option_c || "Not Given",
                   option_d: "",
-                }
+                };
               }
-              return base
+              return base;
             })
           );
         setIsLoading(false);
@@ -147,26 +155,20 @@ export default function LessonEditor({
 
       if (!currentLessonId) {
         const newLessonId = generateUuid();
-        const { error: lessonError } = await supabase.from("lessons").insert(
-          {
-            id: newLessonId,
-            teacher_id: userId,
-            title,
-            description,
-            time_limit_minutes: parsedTimeLimit,
-          },
-          { returning: "minimal" }
-        );
+        const { error: lessonError } = await supabase.from("lessons").insert({
+          id: newLessonId,
+          teacher_id: userId,
+          title,
+          description,
+          time_limit_minutes: parsedTimeLimit,
+        });
 
         if (lessonError) throw lessonError;
         currentLessonId = newLessonId;
       } else {
         const { error: updateError } = await supabase
           .from("lessons")
-          .update(
-            { title, description, time_limit_minutes: parsedTimeLimit },
-            { returning: "minimal" }
-          )
+          .update({ title, description, time_limit_minutes: parsedTimeLimit })
           .eq("id", currentLessonId);
 
         if (updateError) throw updateError;
@@ -175,27 +177,21 @@ export default function LessonEditor({
       // Save flashcards
       for (const flashcard of flashcards) {
         if (flashcard.id.startsWith("new-")) {
-          const { error } = await supabase.from("flashcards").insert(
-            {
-              lesson_id: currentLessonId,
-              front: flashcard.front,
-              back: flashcard.back,
-              order_index: flashcard.order_index,
-            },
-            { returning: "minimal" }
-          );
+          const { error } = await supabase.from("flashcards").insert({
+            lesson_id: currentLessonId,
+            front: flashcard.front,
+            back: flashcard.back,
+            order_index: flashcard.order_index,
+          });
           if (error) throw error;
         } else {
           const { error } = await supabase
             .from("flashcards")
-            .update(
-              {
-                front: flashcard.front,
-                back: flashcard.back,
-                order_index: flashcard.order_index,
-              },
-              { returning: "minimal" }
-            )
+            .update({
+              front: flashcard.front,
+              back: flashcard.back,
+              order_index: flashcard.order_index,
+            })
             .eq("id", flashcard.id);
           if (error) throw error;
         }
@@ -204,9 +200,23 @@ export default function LessonEditor({
       // Save questions
       for (const question of questions) {
         if (question.id.startsWith("new-")) {
-          const { error } = await supabase.from("questions").insert(
-            {
-              lesson_id: currentLessonId,
+          const { error } = await supabase.from("questions").insert({
+            lesson_id: currentLessonId,
+            question_text: question.question_text,
+            question_type: question.question_type,
+            correct_answer: question.correct_answer,
+            option_a: question.option_a,
+            option_b: question.option_b,
+            option_c: question.option_c,
+            option_d: question.option_d,
+            explanation: question.explanation,
+            order_index: question.order_index,
+          });
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("questions")
+            .update({
               question_text: question.question_text,
               question_type: question.question_type,
               correct_answer: question.correct_answer,
@@ -216,27 +226,7 @@ export default function LessonEditor({
               option_d: question.option_d,
               explanation: question.explanation,
               order_index: question.order_index,
-            },
-            { returning: "minimal" }
-          );
-          if (error) throw error;
-        } else {
-          const { error } = await supabase
-            .from("questions")
-            .update(
-              {
-                question_text: question.question_text,
-                question_type: question.question_type,
-                correct_answer: question.correct_answer,
-                option_a: question.option_a,
-                option_b: question.option_b,
-                option_c: question.option_c,
-                option_d: question.option_d,
-                explanation: question.explanation,
-                order_index: question.order_index,
-              },
-              { returning: "minimal" }
-            )
+            })
             .eq("id", question.id);
           if (error) throw error;
         }
@@ -312,18 +302,20 @@ export default function LessonEditor({
               <Button
                 variant="ghost"
                 size="icon"
-                className="border border-slate-200/70 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
-              >
+                className="border border-slate-200/70 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300">Lesson Builder</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300">
+                Lesson Builder
+              </p>
               <h1 className="mt-1 text-3xl font-semibold text-slate-900 transition dark:text-white">
-                {lessonId ? "Refine your lesson" : "Design a new lesson"}
+                {lessonId ? "Refine your lesson" : "Create a new lesson"}
               </h1>
               <p className="mt-2 max-w-xl text-sm text-slate-500 dark:text-slate-300">
-                Outline the story, craft practice moments, and get ready to delight learners with a structured journey.
+                Outline the story, craft practice moments, and get ready to
+                delight learners with a structured journey.
               </p>
             </div>
           </div>
@@ -333,16 +325,14 @@ export default function LessonEditor({
               <Button
                 variant="ghost"
                 className="border border-slate-200/70 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20"
-                type="button"
-              >
+                type="button">
                 Discard changes
               </Button>
             </Link>
             <Button
               onClick={handleSave}
               disabled={isSaving}
-              className="gap-2 bg-sky-500 text-white hover:bg-sky-400"
-            >
+              className="gap-2 bg-sky-500 text-white hover:bg-sky-400">
               {isSaving ? "Saving…" : "Save lesson"}
             </Button>
           </div>
@@ -351,39 +341,48 @@ export default function LessonEditor({
         <section className="grid gap-6 md:grid-cols-[1fr]">
           <Card className="border-slate-200/60 bg-white/80 text-slate-900 shadow-2xl backdrop-blur transition dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-100">
             <CardHeader className="space-y-2">
-              <CardTitle className="text-2xl font-semibold text-slate-900 dark:text-white">Lesson details</CardTitle>
+              <CardTitle className="text-2xl font-semibold text-slate-900 dark:text-white">
+                Lesson details
+              </CardTitle>
               <CardDescription className="text-sm text-slate-500 dark:text-slate-300">
-                Give learners context: what will they master and how long will it take?
+                Give learners context: what will they master and how long will
+                it take?
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-5 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="title" className="text-sm text-slate-600 dark:text-slate-300">
+                <Label
+                  htmlFor="title"
+                  className="text-sm text-slate-600 dark:text-slate-300">
                   Lesson title
                 </Label>
                 <Input
                   id="title"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={e => setTitle(e.target.value)}
                   placeholder="E.g. Conversational Spanish: polite requests"
                   className="border-slate-200/60 bg-white text-slate-700 placeholder:text-slate-400 focus-visible:border-sky-400/60 focus-visible:ring-sky-400/40 dark:border-white/15 dark:bg-slate-950/60 dark:text-slate-100"
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="description" className="text-sm text-slate-600 dark:text-slate-300">
+                <Label
+                  htmlFor="description"
+                  className="text-sm text-slate-600 dark:text-slate-300">
                   Description
                 </Label>
                 <Textarea
                   id="description"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={e => setDescription(e.target.value)}
                   placeholder="Describe the experience, prerequisites, or outcomes learners should expect."
                   className="border-slate-200/60 bg-white text-slate-700 placeholder:text-slate-400 focus-visible:border-sky-400/60 focus-visible:ring-sky-400/40 dark:border-white/15 dark:bg-slate-950/60 dark:text-slate-100"
                   rows={4}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="timeLimit" className="text-sm text-slate-600 dark:text-slate-300">
+                <Label
+                  htmlFor="timeLimit"
+                  className="text-sm text-slate-600 dark:text-slate-300">
                   Time limit (minutes)
                 </Label>
                 <Input
@@ -392,16 +391,19 @@ export default function LessonEditor({
                   min={1}
                   step={1}
                   value={timeLimit}
-                  onChange={(e) => setTimeLimit(e.target.value)}
+                  onChange={e => setTimeLimit(e.target.value)}
                   placeholder="Optional"
                   className="border-slate-200/60 bg-white text-slate-700 placeholder:text-slate-400 focus-visible:border-sky-400/60 focus-visible:ring-sky-400/40 dark:border-white/15 dark:bg-slate-950/60 dark:text-slate-100"
                 />
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Leave blank for a self-paced lesson or set a focused sprint duration.
+                  Leave blank for a self-paced lesson or set a focused sprint
+                  duration.
                 </p>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm text-slate-600 dark:text-slate-300">At a glance</Label>
+                <Label className="text-sm text-slate-600 dark:text-slate-300">
+                  At a glance
+                </Label>
                 <div className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-300">
                   <span className="inline-flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/70 px-3 py-1 transition dark:border-white/10 dark:bg-white/5">
                     <span className="h-2 w-2 rounded-full bg-sky-400" />
@@ -418,9 +420,12 @@ export default function LessonEditor({
 
           <Card className="border-slate-200/60 bg-white/80 text-slate-900 shadow-2xl backdrop-blur transition dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-100">
             <CardHeader className="space-y-2">
-              <CardTitle className="text-2xl font-semibold text-slate-900 dark:text-white">Lesson content</CardTitle>
+              <CardTitle className="text-2xl font-semibold text-slate-900 dark:text-white">
+                Lesson content
+              </CardTitle>
               <CardDescription className="text-sm text-slate-500 dark:text-slate-300">
-                Curate a blend of memory-building flashcards and questions that check comprehension.
+                Curate a blend of memory-building flashcards and questions that
+                check comprehension.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -428,14 +433,12 @@ export default function LessonEditor({
                 <TabsList className="grid w-full grid-cols-2 gap-2 rounded-full border border-slate-200/60 bg-white/70 p-1 transition dark:border-white/10 dark:bg-white/5">
                   <TabsTrigger
                     value="flashcards"
-                    className="rounded-full data-[state=active]:bg-sky-500 data-[state=active]:text-white"
-                  >
+                    className="rounded-full data-[state=active]:bg-sky-500 data-[state=active]:text-white">
                     Flashcards ({flashcards.length})
                   </TabsTrigger>
                   <TabsTrigger
                     value="questions"
-                    className="rounded-full data-[state=active]:bg-emerald-500 data-[state=active]:text-white"
-                  >
+                    className="rounded-full data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
                     Questions ({questions.length})
                   </TabsTrigger>
                 </TabsList>
@@ -452,7 +455,8 @@ export default function LessonEditor({
                     </div>
                   ) : flashcards.length === 0 ? (
                     <div className="rounded-3xl border border-dashed border-slate-300 bg-white/70 p-10 text-center text-sm text-slate-500 transition dark:border-white/15 dark:bg-white/5 dark:text-slate-300">
-                      No flashcards yet. Introduce core concepts first to prime learners for practice.
+                      No flashcards yet. Introduce core concepts first to prime
+                      learners for practice.
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -461,7 +465,9 @@ export default function LessonEditor({
                           key={flashcard.id}
                           index={index + 1}
                           flashcard={flashcard}
-                          onUpdate={(updates) => updateFlashcard(flashcard.id, updates)}
+                          onUpdate={updates =>
+                            updateFlashcard(flashcard.id, updates)
+                          }
                           onDelete={() => deleteFlashcard(flashcard.id)}
                         />
                       ))}
@@ -471,8 +477,7 @@ export default function LessonEditor({
                     onClick={addFlashcard}
                     variant="secondary"
                     className="w-full gap-2 border border-sky-500/40 bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 dark:text-sky-100"
-                    type="button"
-                  >
+                    type="button">
                     <Plus className="h-4 w-4" />
                     Add flashcard
                   </Button>
@@ -490,7 +495,8 @@ export default function LessonEditor({
                     </div>
                   ) : questions.length === 0 ? (
                     <div className="rounded-3xl border border-dashed border-slate-300 bg-white/70 p-10 text-center text-sm text-slate-500 transition dark:border-white/15 dark:bg-white/5 dark:text-slate-300">
-                      No questions yet. Validate understanding with multiple-choice or yes/no checkpoints.
+                      No questions yet. Validate understanding with
+                      multiple-choice or yes/no checkpoints.
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -499,7 +505,9 @@ export default function LessonEditor({
                           key={question.id}
                           index={index + 1}
                           question={question}
-                          onUpdate={(updates) => updateQuestion(question.id, updates)}
+                          onUpdate={updates =>
+                            updateQuestion(question.id, updates)
+                          }
                           onDelete={() => deleteQuestion(question.id)}
                         />
                       ))}
@@ -509,8 +517,7 @@ export default function LessonEditor({
                     onClick={addQuestion}
                     variant="secondary"
                     className="w-full gap-2 border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-100"
-                    type="button"
-                  >
+                    type="button">
                     <Plus className="h-4 w-4" />
                     Add question
                   </Button>
@@ -525,16 +532,14 @@ export default function LessonEditor({
             <Button
               variant="outline"
               className="w-full border border-slate-200/70 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/20"
-              type="button"
-            >
+              type="button">
               Cancel
             </Button>
           </Link>
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="w-full gap-2 bg-sky-500 text-white hover:bg-sky-400 sm:w-auto"
-          >
+            className="w-full gap-2 bg-sky-500 text-white hover:bg-sky-400 sm:w-auto">
             {isSaving ? "Saving…" : "Save lesson"}
           </Button>
         </footer>

@@ -47,54 +47,7 @@ export default function LoginScreen() {
       <div className="hidden dark:block absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.2),rgba(15,23,42,0.95),rgba(2,6,23,1))]" />
       <div className="pointer-events-none absolute inset-0 opacity-40 [background:radial-gradient(rgba(148,163,184,0.12)_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(circle_at_center,white,transparent_65%)]" />
 
-      <div className="relative z-10 grid w-full max-w-6xl gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="hidden flex-col justify-between gap-6 md:flex">
-          <div className="flex items-center justify-end">
-            <ThemeToggle />
-          </div>
-          <div className="space-y-6 rounded-3xl border border-slate-200/70 bg-white/80 p-6 shadow-2xl backdrop-blur transition dark:border-white/10 dark:bg-white/5">
-            <span className="inline-flex items-center rounded-full border border-sky-500/50 bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-500 transition dark:text-sky-200">
-              Welcome to LearnHub
-            </span>
-            <h1 className="mt-6 text-4xl font-semibold leading-tight text-slate-900 transition dark:text-white md:text-5xl">
-              Empower every learner with structured, bite-sized lessons.
-            </h1>
-            <p className="mt-4 max-w-lg text-base leading-relaxed text-slate-600 dark:text-slate-300">
-              Curate engaging courses, track learner progress, and deliver memorable learning experiences in one
-              modern platform.
-            </p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            {[
-              {
-                title: "Guided Flows",
-                description: "Blend flashcards, quizzes, and translations into immersive lesson paths.",
-              },
-              {
-                title: "Smart Insights",
-                description: "Understand class performance at a glance with real-time analytics.",
-              },
-              {
-                title: "Effortless Collaboration",
-                description: "Invite co-teachers, share templates, and reuse content without friction.",
-              },
-              {
-                title: "Responsive First",
-                description: "Optimized experiences across desktop, tablet, and mobile devices.",
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="rounded-2xl border border-slate-200/70 bg-white/80 p-5 backdrop-blur transition dark:border-white/5 dark:bg-white/5"
-              >
-                <h2 className="text-lg font-semibold text-slate-900 transition dark:text-white">{item.title}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
+      <div className="relative z-10 w-full max-w-xl gap-12">
         <Card className="relative border border-slate-200/70 bg-white/95 shadow-2xl backdrop-blur-lg transition dark:border-white/10 dark:bg-white/10">
           <div className="absolute -top-12 left-1/2 hidden h-24 w-24 -translate-x-1/2 rounded-full bg-sky-500/20 blur-3xl md:block" />
           <div className="absolute right-4 top-4 md:hidden">
