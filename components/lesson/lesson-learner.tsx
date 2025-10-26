@@ -1,40 +1,47 @@
-"use client"
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import Link from "next/link"
-import { ArrowLeft, BookOpen, CheckCircle2, History, ListChecks, Timer } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  BookOpen,
+  CheckCircle2,
+  History,
+  ListChecks,
+  Timer,
+} from "lucide-react";
 
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import QuestionPractice from "./question-practice"
-import type { LessonQuestion } from "@/types/lesson"
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import QuestionPractice from "./question-practice";
+import type { LessonQuestion } from "@/types/lesson";
 
 interface Lesson {
-  id: string
-  title: string
-  description: string
-  time_limit_minutes: number | null
+  id: string;
+  title: string;
+  description: string;
+  time_limit_minutes: number | null;
 }
 
 interface LessonAttempt {
-  id: string
-  student_id: string
-  lesson_id: string
-  correct_answers: number
-  total_questions: number
-  flashcards_reviewed: number
-  created_at: string
-  completed_at: string | null
+  id: string;
+  student_id: string;
+  lesson_id: string;
+  correct_answers: number;
+  total_questions: number;
+  flashcards_reviewed: number;
+  created_at: string;
+  completed_at: string | null;
 }
 
 interface LessonLearnerProps {
-  lessonId: string
-  lesson: Lesson
-  questions: LessonQuestion[]
-  userId: string
-  previousAttempts: LessonAttempt[]
-  flashcardCount: number
+  lessonId: string;
+  lesson: Lesson;
+  questions: LessonQuestion[];
+  userId: string;
+  previousAttempts: LessonAttempt[];
+  flashcardCount: number;
 }
 
 export default function LessonLearner({
@@ -45,38 +52,128 @@ export default function LessonLearner({
   previousAttempts,
   flashcardCount,
 }: LessonLearnerProps) {
-  const supabase = createClient()
-  const totalQuestions = questions.length
+  const supabase = createClient();
+  const totalQuestions = questions.length;
   const hasTimeLimit =
-    typeof lesson.time_limit_minutes === "number" && lesson.time_limit_minutes > 0
-  const timeLimitMinutes = hasTimeLimit ? (lesson.time_limit_minutes as number) : null
+    typeof lesson.time_limit_minutes === "number" &&
+    lesson.time_limit_minutes > 0;
+  const timeLimitMinutes = hasTimeLimit
+    ? (lesson.time_limit_minutes as number)
+    : null;
   const totalTimeSeconds =
-    hasTimeLimit && timeLimitMinutes !== null ? timeLimitMinutes * 60 : null
+    hasTimeLimit && timeLimitMinutes !== null ? timeLimitMinutes * 60 : null;
+  const storageKey = hasTimeLimit
+    ? `lesson-timer-${userId}-${lessonId}`
+    : null;
 
-  const [correctAnswers, setCorrectAnswers] = useState(0)
-  const [attemptHistory, setAttemptHistory] = useState<LessonAttempt[]>(() => [...previousAttempts])
-  const [currentAttempt, setCurrentAttempt] = useState<LessonAttempt | null>(null)
-  const [answeredQuestions, setAnsweredQuestions] = useState<Record<string, boolean>>({})
-  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(totalTimeSeconds)
-  const [isTimeExpired, setIsTimeExpired] = useState(false)
-  const hasInitializedAttempt = useRef(false)
-  const isAttemptCompleted = Boolean(currentAttempt?.completed_at)
+  const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [attemptHistory, setAttemptHistory] = useState<LessonAttempt[]>(() => [
+    ...previousAttempts,
+  ]);
+  const [currentAttempt, setCurrentAttempt] = useState<LessonAttempt | null>(
+    null
+  );
+  const [answeredQuestions, setAnsweredQuestions] = useState<
+    Record<string, boolean>
+  >({});
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(() => {
+    if (!hasTimeLimit) return totalTimeSeconds;
+    if (typeof window === "undefined" || !storageKey) return totalTimeSeconds;
+
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return totalTimeSeconds;
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        attemptId?: string;
+        expiresAt?: string;
+      };
+
+      if (!parsed?.expiresAt) return totalTimeSeconds;
+
+      const expiresAtMs = new Date(parsed.expiresAt).getTime();
+      if (Number.isNaN(expiresAtMs)) return totalTimeSeconds;
+
+      const secondsLeft = Math.max(
+        0,
+        Math.floor((expiresAtMs - Date.now()) / 1000)
+      );
+
+      return secondsLeft;
+    } catch {
+      return totalTimeSeconds;
+    }
+  });
+  const [isTimeExpired, setIsTimeExpired] = useState(false);
+  const hasInitializedAttempt = useRef(false);
+  const hasHydratedInitialState = useRef(false);
+  const isAttemptCompleted = Boolean(currentAttempt?.completed_at);
 
   useEffect(() => {
-    setCorrectAnswers(0)
-    setAttemptHistory([...previousAttempts])
-    setCurrentAttempt(null)
-    setAnsweredQuestions({})
-    setRemainingSeconds(totalTimeSeconds)
-    setIsTimeExpired(false)
-    hasInitializedAttempt.current = false
-  }, [lessonId, previousAttempts, totalTimeSeconds])
+    setCorrectAnswers(0);
+    setAttemptHistory([...previousAttempts]);
+    setCurrentAttempt(null);
+    setAnsweredQuestions({});
+    if (hasHydratedInitialState.current) {
+      setRemainingSeconds(totalTimeSeconds);
+    } else {
+      hasHydratedInitialState.current = true;
+    }
+    setIsTimeExpired(false);
+    hasInitializedAttempt.current = false;
+  }, [hasTimeLimit, lessonId, previousAttempts, totalTimeSeconds]);
 
   useEffect(() => {
-    if (hasInitializedAttempt.current) return
-    hasInitializedAttempt.current = true
+    if (hasInitializedAttempt.current || currentAttempt) return;
+    hasInitializedAttempt.current = true;
 
     const startAttempt = async () => {
+      // Kiểm tra xem có attempt đang active không
+      const { data: existingAttempt } = await supabase
+        .from("lesson_attempts")
+        .select()
+        .eq("student_id", userId)
+        .eq("lesson_id", lessonId)
+        .is("completed_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (existingAttempt) {
+        // Đánh dấu attempt dang dở là đã hoàn thành để lần vào sau được tính attempt mới
+        const completionTimestamp = new Date().toISOString();
+        const { error: finalizeError } = await supabase
+          .from("lesson_attempts")
+          .update({ completed_at: completionTimestamp })
+          .eq("id", existingAttempt.id);
+
+        if (finalizeError) {
+          console.error("Failed to finalize previous attempt:", finalizeError);
+        }
+
+        const completedRecord: LessonAttempt = {
+          ...existingAttempt,
+          completed_at: completionTimestamp,
+        };
+
+        setAttemptHistory((prev) => {
+          const existingIndex = prev.findIndex(
+            (item) => item.id === existingAttempt.id
+          );
+          if (existingIndex >= 0) {
+            const next = [...prev];
+            next[existingIndex] = completedRecord;
+            return next;
+          }
+          return [completedRecord, ...prev];
+        });
+
+        if (hasTimeLimit && storageKey && typeof window !== "undefined") {
+          window.localStorage.removeItem(storageKey);
+        }
+        setRemainingSeconds(totalTimeSeconds);
+      }
+
       const { data, error } = await supabase
         .from("lesson_attempts")
         .insert({
@@ -85,64 +182,81 @@ export default function LessonLearner({
           total_questions: totalQuestions,
         })
         .select()
-        .single()
+        .single();
 
       if (error) {
-        console.error("Failed to start lesson attempt:", error)
-        hasInitializedAttempt.current = false
-        return
+        console.error("Failed to start lesson attempt:", error);
+        hasInitializedAttempt.current = false;
+        return;
       }
 
-      setCurrentAttempt(data)
-    }
+      setCurrentAttempt(data);
+    };
 
-    void startAttempt()
-  }, [lessonId, supabase, totalQuestions, userId])
+    void startAttempt();
+  }, [
+    currentAttempt,
+    hasTimeLimit,
+    lessonId,
+    storageKey,
+    supabase,
+    totalQuestions,
+    totalTimeSeconds,
+    userId,
+  ]);
 
   const updateAttempt = useCallback(
     async (patch: Partial<LessonAttempt>) => {
-      if (!currentAttempt) return
-      const attemptId = currentAttempt.id
-      setCurrentAttempt((prev) => (prev ? { ...prev, ...patch } : prev))
+      if (!currentAttempt) return;
+      const attemptId = currentAttempt.id;
+      setCurrentAttempt((prev) => (prev ? { ...prev, ...patch } : prev));
 
-      const { error } = await supabase.from("lesson_attempts").update(patch).eq("id", attemptId)
+      const { error } = await supabase
+        .from("lesson_attempts")
+        .update(patch)
+        .eq("id", attemptId);
       if (error) {
-        console.error("Failed to update lesson attempt:", error)
+        console.error("Failed to update lesson attempt:", error);
       }
     },
-    [currentAttempt, supabase],
-  )
+    [currentAttempt, supabase]
+  );
 
-  const handleQuestionCorrect = async (questionId: string, answer: string, isCorrect: boolean) => {
+  const handleQuestionCorrect = async (
+    questionId: string,
+    answer: string,
+    isCorrect: boolean
+  ) => {
     if (answeredQuestions[questionId]) {
-      return
+      return;
     }
 
-    setAnsweredQuestions((prev) => ({ ...prev, [questionId]: isCorrect }))
+    setAnsweredQuestions((prev) => ({ ...prev, [questionId]: isCorrect }));
 
-    const newCorrectTotal = isCorrect ? correctAnswers + 1 : correctAnswers
-    setCorrectAnswers(newCorrectTotal)
+    const newCorrectTotal = isCorrect ? correctAnswers + 1 : correctAnswers;
+    setCorrectAnswers(newCorrectTotal);
 
-    const newAnsweredCount = Object.keys(answeredQuestions).length + 1
-    const patch: Partial<LessonAttempt> = { correct_answers: newCorrectTotal }
+    const newAnsweredCount = Object.keys(answeredQuestions).length + 1;
+    const patch: Partial<LessonAttempt> = { correct_answers: newCorrectTotal };
 
     if (newAnsweredCount === totalQuestions && totalQuestions > 0) {
-      patch.completed_at = new Date().toISOString()
+      patch.completed_at = new Date().toISOString();
     }
 
     if (currentAttempt) {
-      await updateAttempt(patch)
+      await updateAttempt(patch);
 
       if (patch.completed_at) {
         const completedRecord: LessonAttempt = {
           ...currentAttempt,
           ...patch,
-          correct_answers: patch.correct_answers ?? currentAttempt.correct_answers,
+          correct_answers:
+            patch.correct_answers ?? currentAttempt.correct_answers,
           completed_at: patch.completed_at,
-        }
+        };
 
-        setAttemptHistory((prev) => [completedRecord, ...prev])
-        setCurrentAttempt(completedRecord)
+        setAttemptHistory((prev) => [completedRecord, ...prev]);
+        setCurrentAttempt(completedRecord);
       }
     }
 
@@ -152,121 +266,207 @@ export default function LessonLearner({
       question_id: questionId,
       answer,
       is_correct: isCorrect,
-    })
+    });
 
     if (error) {
-      console.error("Failed to save student response:", error)
+      console.error("Failed to save student response:", error);
     }
-  }
+  };
 
   const finalizeAttemptOnTimeout = useCallback(() => {
-    const attempt = currentAttempt
-    if (!attempt || attempt.completed_at) return
+    const attempt = currentAttempt;
+    if (!attempt || attempt.completed_at) return;
 
-    const completionTimestamp = new Date().toISOString()
+    const completionTimestamp = new Date().toISOString();
     const patch: Partial<LessonAttempt> = {
       completed_at: completionTimestamp,
       correct_answers: attempt.correct_answers,
-    }
+    };
 
-    void updateAttempt(patch)
+    void updateAttempt(patch);
 
     const completedRecord: LessonAttempt = {
       ...attempt,
       ...patch,
       completed_at: completionTimestamp,
       correct_answers: patch.correct_answers ?? attempt.correct_answers,
-    }
+    };
 
     setAttemptHistory((prev) => {
-      const existingIndex = prev.findIndex((item) => item.id === attempt.id)
+      const existingIndex = prev.findIndex((item) => item.id === attempt.id);
       if (existingIndex >= 0) {
-        const next = [...prev]
-        next[existingIndex] = completedRecord
-        return next
+        const next = [...prev];
+        next[existingIndex] = completedRecord;
+        return next;
       }
-      return [completedRecord, ...prev]
-    })
-    setCurrentAttempt(completedRecord)
-  }, [currentAttempt, updateAttempt])
+      return [completedRecord, ...prev];
+    });
+    setCurrentAttempt(completedRecord);
+  }, [currentAttempt, updateAttempt]);
 
   useEffect(() => {
-    if (!hasTimeLimit || isTimeExpired || isAttemptCompleted) return
-    if (remainingSeconds === null || remainingSeconds <= 0) return
+    if (
+      !hasTimeLimit ||
+      !storageKey ||
+      typeof window === "undefined" ||
+      !totalTimeSeconds
+    ) {
+      return;
+    }
+
+    if (!currentAttempt || currentAttempt.completed_at) {
+      return;
+    }
+
+    const now = Date.now();
+    const storedRaw = window.localStorage.getItem(storageKey);
+
+    if (storedRaw) {
+      try {
+        const parsed = JSON.parse(storedRaw) as {
+          attemptId?: string;
+          expiresAt?: string;
+        };
+
+        if (parsed?.attemptId === currentAttempt.id && parsed.expiresAt) {
+          const expiresAtMs = new Date(parsed.expiresAt).getTime();
+          if (!Number.isNaN(expiresAtMs)) {
+            const secondsLeft = Math.max(
+              0,
+              Math.floor((expiresAtMs - now) / 1000)
+            );
+            setRemainingSeconds((prev) =>
+              prev === secondsLeft ? prev : secondsLeft
+            );
+            return;
+          }
+        }
+      } catch {
+        // Ignore parse errors and reset below.
+      }
+    }
+
+    const expiresAt = new Date(now + totalTimeSeconds * 1000).toISOString();
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        attemptId: currentAttempt.id,
+        expiresAt,
+      })
+    );
+
+    const secondsLeft = Math.max(
+      0,
+      Math.floor((new Date(expiresAt).getTime() - now) / 1000)
+    );
+    setRemainingSeconds(secondsLeft);
+  }, [
+    currentAttempt,
+    hasTimeLimit,
+    storageKey,
+    totalTimeSeconds,
+  ]);
+
+  useEffect(() => {
+    if (!hasTimeLimit || isTimeExpired || isAttemptCompleted) return;
+    if (remainingSeconds === null || remainingSeconds <= 0) return;
 
     const interval = window.setInterval(() => {
       setRemainingSeconds((prev) => {
-        if (prev === null) return prev
+        if (prev === null) return prev;
         if (prev <= 1) {
-          window.clearInterval(interval)
-          return 0
+          window.clearInterval(interval);
+          return 0;
         }
-        return prev - 1
-      })
-    }, 1000)
+        return prev - 1;
+      });
+    }, 1000);
 
-    return () => window.clearInterval(interval)
-  }, [hasTimeLimit, isAttemptCompleted, isTimeExpired, remainingSeconds])
+    return () => window.clearInterval(interval);
+  }, [hasTimeLimit, isAttemptCompleted, isTimeExpired, remainingSeconds]);
 
   useEffect(() => {
-    if (!hasTimeLimit || isAttemptCompleted) return
-    if (remainingSeconds === null || remainingSeconds > 0) return
-    if (isTimeExpired) return
+    if (!hasTimeLimit || isAttemptCompleted) return;
+    if (remainingSeconds === null || remainingSeconds > 0) return;
+    if (isTimeExpired) return;
 
-    setIsTimeExpired(true)
-    finalizeAttemptOnTimeout()
-  }, [finalizeAttemptOnTimeout, hasTimeLimit, isAttemptCompleted, isTimeExpired, remainingSeconds])
+    setIsTimeExpired(true);
+    finalizeAttemptOnTimeout();
+  }, [
+    finalizeAttemptOnTimeout,
+    hasTimeLimit,
+    isAttemptCompleted,
+    isTimeExpired,
+    remainingSeconds,
+  ]);
+
+  useEffect(() => {
+    if (!hasTimeLimit || !storageKey || typeof window === "undefined") {
+      return;
+    }
+
+    if (isTimeExpired || isAttemptCompleted) {
+      window.localStorage.removeItem(storageKey);
+    }
+  }, [hasTimeLimit, isAttemptCompleted, isTimeExpired, storageKey]);
 
   const completedAttempts = useMemo(
     () => attemptHistory.filter((attempt) => attempt.completed_at),
-    [attemptHistory],
-  )
+    [attemptHistory]
+  );
 
-  const attemptsToDisplay = useMemo(() => completedAttempts.slice(0, 5), [completedAttempts])
-  const completedAttemptsCount = completedAttempts.length
+  const attemptsToDisplay = useMemo(
+    () => completedAttempts.slice(0, 5),
+    [completedAttempts]
+  );
+  const completedAttemptsCount = completedAttempts.length;
 
   const attemptStatusLabel = useMemo(() => {
-    if (!currentAttempt) return null
+    if (!currentAttempt) return null;
     if (currentAttempt.completed_at) {
-      return `Latest attempt: #${completedAttemptsCount}`
+      return `Latest attempt: #${completedAttemptsCount}`;
     }
-    return `Attempt in progress: #${attemptHistory.length + 1}`
-  }, [attemptHistory.length, completedAttemptsCount, currentAttempt])
+    return `Attempt in progress: #${attemptHistory.length + 1}`;
+  }, [attemptHistory.length, completedAttemptsCount, currentAttempt]);
 
   const formatTimestamp = (isoDate: string | null) => {
-    if (!isoDate) return "In progress"
-    return new Date(isoDate).toLocaleString()
-  }
+    if (!isoDate) return "In progress";
+    return new Date(isoDate).toLocaleString();
+  };
 
   const scorePercent = (attempt: LessonAttempt) => {
-    if (!attempt.total_questions) return null
-    return Math.round((attempt.correct_answers / attempt.total_questions) * 100)
-  }
+    if (!attempt.total_questions) return null;
+    return Math.round(
+      (attempt.correct_answers / attempt.total_questions) * 100
+    );
+  };
 
   const formatDuration = (seconds: number) => {
-    const safeSeconds = Math.max(0, seconds)
-    const minutes = Math.floor(safeSeconds / 60)
-    const remaining = safeSeconds % 60
-    const minutesLabel = minutes.toString().padStart(2, "0")
-    const secondsLabel = remaining.toString().padStart(2, "0")
-    return `${minutesLabel}:${secondsLabel}`
-  }
+    const safeSeconds = Math.max(0, seconds);
+    const minutes = Math.floor(safeSeconds / 60);
+    const remaining = safeSeconds % 60;
+    const minutesLabel = minutes.toString().padStart(2, "0");
+    const secondsLabel = remaining.toString().padStart(2, "0");
+    return `${minutesLabel}:${secondsLabel}`;
+  };
 
   const timeRemainingLabel =
-    hasTimeLimit && remainingSeconds !== null ? formatDuration(remainingSeconds) : null
+    hasTimeLimit && remainingSeconds !== null
+      ? formatDuration(remainingSeconds)
+      : null;
 
   const timeStatusText = hasTimeLimit
     ? isTimeExpired
       ? "Time is up. Review your answers or restart later."
       : isAttemptCompleted
-        ? "Attempt completed. You can review your work anytime."
-        : "Complete the practice before the time runs out."
-    : null
+      ? "Attempt completed. You can review your work anytime."
+      : "Complete the practice before the time runs out."
+    : null;
 
   const answeredCount = useMemo(
     () => Object.keys(answeredQuestions).length,
-    [answeredQuestions],
-  )
+    [answeredQuestions]
+  );
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
@@ -286,8 +486,12 @@ export default function LessonLearner({
               </Button>
             </Link>
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-300">Practice session</p>
-              <h1 className="mt-1 text-3xl font-semibold text-white">{lesson.title}</h1>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-300">
+                Practice session
+              </p>
+              <h1 className="mt-1 text-3xl font-semibold text-white">
+                {lesson.title}
+              </h1>
               <p className="mt-2 text-sm text-slate-300">
                 {lesson.description ||
                   "Work through the practice set and track your progress over time."}
@@ -298,7 +502,8 @@ export default function LessonLearner({
             {hasTimeLimit && timeLimitMinutes !== null && (
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-100">
                 <Timer className="h-4 w-4" />
-                {timeLimitMinutes} minute{timeLimitMinutes === 1 ? "" : "s"} limit
+                {timeLimitMinutes} minute{timeLimitMinutes === 1 ? "" : "s"}{" "}
+                limit
               </span>
             )}
             {flashcardCount > 0 ? (
@@ -328,7 +533,9 @@ export default function LessonLearner({
                   <ListChecks className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Questions answered</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                    Questions answered
+                  </p>
                   <p className="text-2xl font-semibold text-white">
                     {answeredCount}/{totalQuestions || 0}
                   </p>
@@ -347,14 +554,17 @@ export default function LessonLearner({
                   <CheckCircle2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Correct answers</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                    Correct answers
+                  </p>
                   <p className="text-2xl font-semibold text-white">
                     {correctAnswers}/{totalQuestions || 0}
                   </p>
                 </div>
               </div>
               <p className="text-xs text-slate-400">
-                Reflect on each result to reinforce what worked and what needs review.
+                Reflect on each result to reinforce what worked and what needs
+                review.
               </p>
             </CardContent>
           </Card>
@@ -366,11 +576,17 @@ export default function LessonLearner({
                   <History className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Completed attempts</p>
-                  <p className="text-2xl font-semibold text-white">{completedAttemptsCount}</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                    Completed attempts
+                  </p>
+                  <p className="text-2xl font-semibold text-white">
+                    {completedAttemptsCount}
+                  </p>
                 </div>
               </div>
-              {attemptStatusLabel && <p className="text-xs text-slate-400">{attemptStatusLabel}</p>}
+              {attemptStatusLabel && (
+                <p className="text-xs text-slate-400">{attemptStatusLabel}</p>
+              )}
             </CardContent>
           </Card>
 
@@ -382,13 +598,17 @@ export default function LessonLearner({
                     <Timer className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Time remaining</p>
+                    <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                      Time remaining
+                    </p>
                     <p className="text-2xl font-semibold text-white">
                       {timeRemainingLabel ?? (isTimeExpired ? "00:00" : "—")}
                     </p>
                   </div>
                 </div>
-                {timeStatusText && <p className="text-xs text-slate-400">{timeStatusText}</p>}
+                {timeStatusText && (
+                  <p className="text-xs text-slate-400">{timeStatusText}</p>
+                )}
               </CardContent>
             </Card>
           )}
@@ -396,27 +616,32 @@ export default function LessonLearner({
 
         <Card className="border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl backdrop-blur">
           <CardHeader>
-            <CardTitle className="text-xl font-semibold text-white">Attempt history</CardTitle>
+            <CardTitle className="text-xl font-semibold text-white">
+              Attempt history
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {attemptsToDisplay.length === 0 ? (
               <p className="text-sm text-slate-300">
-                Finish the practice set to start tracking your progress over time.
+                Finish the practice set to start tracking your progress over
+                time.
               </p>
             ) : (
               <ul className="space-y-4">
                 {attemptsToDisplay.map((attempt, index) => {
-                  const attemptNumber = completedAttemptsCount - index
-                  const percent = scorePercent(attempt)
-                  const previousAttempt = attemptsToDisplay[index + 1]
-                  let deltaLabel: string | null = null
+                  const attemptNumber = completedAttemptsCount - index;
+                  const percent = scorePercent(attempt);
+                  const previousAttempt = attemptsToDisplay[index + 1];
+                  let deltaLabel: string | null = null;
 
                   if (previousAttempt) {
-                    const prevPercent = scorePercent(previousAttempt)
+                    const prevPercent = scorePercent(previousAttempt);
                     if (percent !== null && prevPercent !== null) {
-                      const delta = percent - prevPercent
+                      const delta = percent - prevPercent;
                       if (delta !== 0) {
-                        deltaLabel = `${delta > 0 ? "+" : ""}${delta}% compared to last time`
+                        deltaLabel = `${
+                          delta > 0 ? "+" : ""
+                        }${delta}% compared to last time`;
                       }
                     }
                   }
@@ -427,27 +652,37 @@ export default function LessonLearner({
                       className="rounded-3xl border border-white/10 bg-white/5 p-5 text-sm text-slate-200"
                     >
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="text-base font-semibold text-white">Attempt #{attemptNumber}</span>
+                        <span className="text-base font-semibold text-white">
+                          Attempt #{attemptNumber}
+                        </span>
                         <span className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                          {formatTimestamp(attempt.completed_at ?? attempt.created_at)}
+                          {formatTimestamp(
+                            attempt.completed_at ?? attempt.created_at
+                          )}
                         </span>
                       </div>
                       <div className="mt-3 flex flex-wrap gap-4">
                         <span>
                           {attempt.total_questions > 0
-                            ? `Score: ${attempt.correct_answers}/${attempt.total_questions}${
-                                percent !== null ? ` (${percent}%)` : ""
-                              }`
+                            ? `Score: ${attempt.correct_answers}/${
+                                attempt.total_questions
+                              }${percent !== null ? ` (${percent}%)` : ""}`
                             : "No practice questions recorded"}
                         </span>
                         {deltaLabel && (
-                          <span className={deltaLabel.startsWith("+") ? "text-emerald-300" : "text-rose-300"}>
+                          <span
+                            className={
+                              deltaLabel.startsWith("+")
+                                ? "text-emerald-300"
+                                : "text-rose-300"
+                            }
+                          >
                             {deltaLabel}
                           </span>
                         )}
                       </div>
                     </li>
-                  )
+                  );
                 })}
               </ul>
             )}
@@ -456,7 +691,9 @@ export default function LessonLearner({
 
         <Card className="border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl backdrop-blur">
           <CardHeader>
-            <CardTitle className="text-xl font-semibold text-white">Practice questions</CardTitle>
+            <CardTitle className="text-xl font-semibold text-white">
+              Practice questions
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {questions.length === 0 ? (
@@ -489,5 +726,5 @@ export default function LessonLearner({
         </footer>
       </div>
     </div>
-  )
+  );
 }
