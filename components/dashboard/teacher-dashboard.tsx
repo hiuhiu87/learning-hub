@@ -1,102 +1,115 @@
-"use client"
+"use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { formatDistanceToNow } from "date-fns"
-import { Sparkles, GraduationCap, Users, FolderOpenDot, Layers, Plus, RefreshCcw } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { formatDistanceToNow } from "date-fns";
+import {
+  Sparkles,
+  GraduationCap,
+  Users,
+  FolderOpenDot,
+  Layers,
+  Plus,
+  RefreshCcw,
+} from "lucide-react";
 
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface Lesson {
-  id: string
-  title: string
-  description: string
-  created_at: string
-  time_limit_minutes: number | null
+  id: string;
+  title: string;
+  description: string;
+  created_at: string;
+  time_limit_minutes: number | null;
 }
 
 export default function TeacherDashboard({ userId }: { userId: string }) {
-  const [lessons, setLessons] = useState<Lesson[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [dashboardError, setDashboardError] = useState<string | null>(null)
-  const [uniqueStudents, setUniqueStudents] = useState(0)
-  const [totalEnrollments, setTotalEnrollments] = useState(0)
-  const supabase = createClient()
-  const router = useRouter()
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [uniqueStudents, setUniqueStudents] = useState(0);
+  const [totalEnrollments, setTotalEnrollments] = useState(0);
+  const supabase = createClient();
+  const router = useRouter();
 
   const fetchDashboardData = useCallback(
     async (options?: { skipInitialSpinner?: boolean }) => {
       if (!options?.skipInitialSpinner) {
-        setIsLoading(true)
+        setIsLoading(true);
       }
-      setDashboardError(null)
+      setDashboardError(null);
 
-      const {
-        data: lessonData,
-        error: lessonsError,
-      } = await supabase
+      const { data: lessonData, error: lessonsError } = await supabase
         .from("lessons")
         .select("*")
         .eq("teacher_id", userId)
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false });
 
       if (lessonsError) {
-        setLessons([])
-        setUniqueStudents(0)
-        setTotalEnrollments(0)
-        setDashboardError("We couldn’t load your lessons. Please try again.")
-        setIsLoading(false)
-        return
+        setLessons([]);
+        setUniqueStudents(0);
+        setTotalEnrollments(0);
+        setDashboardError("We couldn’t load your lessons. Please try again.");
+        setIsLoading(false);
+        return;
       }
 
-      setLessons(lessonData ?? [])
+      setLessons(lessonData ?? []);
 
       if (lessonData && lessonData.length > 0) {
-        const lessonIds = lessonData.map((lesson) => lesson.id)
+        const lessonIds = lessonData.map((lesson) => lesson.id);
         const { data: enrollmentData, error: enrollmentError } = await supabase
           .from("lesson_enrollments")
           .select("student_id, lesson_id")
-          .in("lesson_id", lessonIds)
+          .in("lesson_id", lessonIds);
 
         if (!enrollmentError && enrollmentData) {
-          const uniqueStudentCount = new Set(enrollmentData.map((item) => item.student_id)).size
-          setUniqueStudents(uniqueStudentCount)
-          setTotalEnrollments(enrollmentData.length)
+          const uniqueStudentCount = new Set(
+            enrollmentData.map((item) => item.student_id)
+          ).size;
+          setUniqueStudents(uniqueStudentCount);
+          setTotalEnrollments(enrollmentData.length);
         } else {
-          setUniqueStudents(0)
-          setTotalEnrollments(0)
+          setUniqueStudents(0);
+          setTotalEnrollments(0);
         }
       } else {
-        setUniqueStudents(0)
-        setTotalEnrollments(0)
+        setUniqueStudents(0);
+        setTotalEnrollments(0);
       }
 
-      setIsLoading(false)
+      setIsLoading(false);
     },
-    [supabase, userId],
-  )
+    [supabase, userId]
+  );
 
   useEffect(() => {
-    fetchDashboardData()
-  }, [fetchDashboardData])
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push("/auth/login")
-  }
+    await supabase.auth.signOut();
+    router.push("/auth/login");
+  };
 
-  const latestLesson = useMemo(() => lessons.at(0), [lessons])
+  const latestLesson = useMemo(() => lessons.at(0), [lessons]);
 
   const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true)
-    await fetchDashboardData({ skipInitialSpinner: true })
-    setIsRefreshing(false)
-  }, [fetchDashboardData])
+    setIsRefreshing(true);
+    await fetchDashboardData({ skipInitialSpinner: true });
+    setIsRefreshing(false);
+  }, [fetchDashboardData]);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100">
@@ -111,10 +124,15 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
               <Sparkles className="size-6" />
             </div>
             <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">LearnHub</p>
-              <h1 className="mt-1 text-3xl font-semibold text-slate-900 transition dark:text-white">Teacher Command Center</h1>
+              <p className="text-sm uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300">
+                LearnHub
+              </p>
+              <h1 className="mt-1 text-3xl font-semibold text-slate-900 transition dark:text-white">
+                Teacher Command Center
+              </h1>
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
-                Design engaging journeys and stay ahead with real-time learning signals.
+                Design engaging journeys and stay ahead with real-time learning
+                signals.
               </p>
             </div>
           </div>
@@ -137,7 +155,7 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
             </Link>
             <Button
               variant="outline"
-              className="border-slate-200/70 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/20 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10 md:w-auto"
+              className="border-slate-200/70 bg-white text-slate-700 hover:bg-slate-100 hover:text-black dark:border-white/20 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10 md:w-auto"
               onClick={handleLogout}
             >
               Sign out
@@ -152,7 +170,8 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
                 Keep your learners inspired
               </CardTitle>
               <CardDescription className="text-slate-500 dark:text-slate-200">
-                See what&apos;s live, what&apos;s trending, and who&apos;s participating in your classroom.
+                See what&apos;s live, what&apos;s trending, and who&apos;s
+                participating in your classroom.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
@@ -176,16 +195,21 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
                     <Layers className="size-8 text-sky-400 dark:text-sky-300" />
                   </div>
                   <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                    {latestLesson.description || "No description provided for this lesson yet."}
+                    {latestLesson.description ||
+                      "No description provided for this lesson yet."}
                   </p>
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                     <span className="rounded-full border border-slate-200/60 bg-white/70 px-3 py-1 transition dark:border-white/10 dark:bg-white/5">
-                      Published {formatDistanceToNow(new Date(latestLesson.created_at), { addSuffix: true })}
+                      Published{" "}
+                      {formatDistanceToNow(new Date(latestLesson.created_at), {
+                        addSuffix: true,
+                      })}
                     </span>
                     {latestLesson.time_limit_minutes != null && (
                       <span className="rounded-full border border-slate-200/60 bg-white/70 px-3 py-1 transition dark:border-white/10 dark:bg-white/5">
                         {latestLesson.time_limit_minutes} minute
-                        {latestLesson.time_limit_minutes === 1 ? "" : "s"} estimated
+                        {latestLesson.time_limit_minutes === 1 ? "" : "s"}{" "}
+                        estimated
                       </span>
                     )}
                     <Link href={`/lesson/${latestLesson.id}/edit`}>
@@ -205,9 +229,12 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
                   <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-slate-200/70 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
                     <Sparkles className="size-6" />
                   </div>
-                  <h2 className="mt-5 text-2xl font-semibold text-slate-900 dark:text-white">No lessons just yet</h2>
+                  <h2 className="mt-5 text-2xl font-semibold text-slate-900 dark:text-white">
+                    No lessons just yet
+                  </h2>
                   <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
-                    Start by creating a lesson template and invite your class to explore.
+                    Start by creating a lesson template and invite your class to
+                    explore.
                   </p>
                   <Link href="/lesson/create">
                     <Button className="mt-5 gap-2 bg-sky-500 text-white hover:bg-sky-400">
@@ -227,9 +254,15 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
                   <GraduationCap className="size-6" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Active Lessons</p>
-                  <p className="text-3xl font-semibold text-slate-900 dark:text-white">{lessons.length}</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Draft, publish, and clone lessons with ease.</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                    Active Lessons
+                  </p>
+                  <p className="text-3xl font-semibold text-slate-900 dark:text-white">
+                    {lessons.length}
+                  </p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Draft, publish, and clone lessons with ease.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -239,9 +272,15 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
                   <Users className="size-6" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Unique Learners</p>
-                  <p className="text-3xl font-semibold text-slate-900 dark:text-white">{uniqueStudents}</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Across all your published lessons and cohorts.</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                    Unique Learners
+                  </p>
+                  <p className="text-3xl font-semibold text-slate-900 dark:text-white">
+                    {uniqueStudents}
+                  </p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Across all your published lessons and cohorts.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -251,9 +290,15 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
                   <FolderOpenDot className="size-6" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Total Enrolments</p>
-                  <p className="text-3xl font-semibold text-slate-900 dark:text-white">{totalEnrollments}</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Track which lessons are drawing the most attention.</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                    Total Enrolments
+                  </p>
+                  <p className="text-3xl font-semibold text-slate-900 dark:text-white">
+                    {totalEnrollments}
+                  </p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Track which lessons are drawing the most attention.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -263,9 +308,12 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
         <section className="space-y-4">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Lesson library</h2>
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
+                Lesson library
+              </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Organize your curriculum, iterate quickly, and dive into performance all in one place.
+                Organize your curriculum, iterate quickly, and dive into
+                performance all in one place.
               </p>
             </div>
             <Button
@@ -323,10 +371,12 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
             <Card className="border-dashed border-slate-300 bg-white/70 text-slate-600 transition dark:border-white/20 dark:bg-white/5 dark:text-white">
               <CardContent className="flex flex-col items-center gap-4 p-10 text-center">
                 <Sparkles className="size-10 text-sky-400 dark:text-sky-300" />
-                <p className="text-lg font-semibold text-slate-900 dark:text-white">Ready to build your first learning path?</p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Ready to build your first learning path?
+                </p>
                 <p className="max-w-2xl text-sm text-slate-500 dark:text-slate-300">
-                  Kick off with a template or start from scratch—add flashcards, translations, and interactive quizzes as
-                  you go.
+                  Kick off with a template or start from scratch—add flashcards,
+                  translations, and interactive quizzes as you go.
                 </p>
                 <Link href="/lesson/create">
                   <Button className="gap-2 bg-sky-500 text-white hover:bg-sky-400">
@@ -345,15 +395,21 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
                 >
                   <div className="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100 [background:radial-gradient(circle_at_top,_rgba(56,189,248,0.2),transparent_60%)]" />
                   <CardHeader className="relative">
-                    <CardTitle className="line-clamp-2 leading-tight text-slate-900 dark:text-white">{lesson.title}</CardTitle>
+                    <CardTitle className="line-clamp-2 leading-tight text-slate-900 dark:text-white">
+                      {lesson.title}
+                    </CardTitle>
                     <CardDescription className="line-clamp-3 text-slate-500 dark:text-slate-300">
-                      {lesson.description || "Add a compelling summary to help learners prepare."}
+                      {lesson.description ||
+                        "Add a compelling summary to help learners prepare."}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="relative space-y-5">
                     <div className="flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
                       <span className="rounded-full border border-slate-200/60 bg-white/70 px-3 py-1 transition dark:border-white/10 dark:bg-white/5">
-                        Updated {formatDistanceToNow(new Date(lesson.created_at), { addSuffix: true })}
+                        Updated{" "}
+                        {formatDistanceToNow(new Date(lesson.created_at), {
+                          addSuffix: true,
+                        })}
                       </span>
                       {lesson.time_limit_minutes != null && (
                         <span className="rounded-full border border-slate-200/60 bg-white/70 px-3 py-1 transition dark:border-white/10 dark:bg-white/5">
@@ -363,12 +419,21 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
                       )}
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row">
-                      <Link href={`/lesson/${lesson.id}/edit`} className="flex-1">
-                        <Button variant="secondary" className="w-full border border-slate-200/60 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
+                      <Link
+                        href={`/lesson/${lesson.id}/edit`}
+                        className="flex-1"
+                      >
+                        <Button
+                          variant="secondary"
+                          className="w-full border border-slate-200/60 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                        >
                           Edit lesson
                         </Button>
                       </Link>
-                      <Link href={`/lesson/${lesson.id}/analytics`} className="flex-1">
+                      <Link
+                        href={`/lesson/${lesson.id}/analytics`}
+                        className="flex-1"
+                      >
                         <Button
                           variant="outline"
                           className="w-full border border-slate-200/60 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/20 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
@@ -385,5 +450,5 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
         </section>
       </div>
     </div>
-  )
+  );
 }
