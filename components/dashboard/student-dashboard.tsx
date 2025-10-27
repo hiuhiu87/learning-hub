@@ -1,22 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import {
-  Sparkles,
-  Search,
+  Bookmark,
   CheckCircle2,
   Compass,
   GraduationCap,
-  TimerReset,
   Library,
   RefreshCcw,
-  Bookmark,
+  Search,
+  Sparkles,
+  TimerReset,
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { createClient } from "@/lib/supabase/client";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -24,13 +25,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ThemeToggle } from "@/components/theme-toggle";
-import FillInTheBlankView from "../fill-in-the-blank-view";
-import { FillInTheBlank } from "../fill-in-the-blank";
-import { SentenceTranslation } from "../sentence-translation";
-import TranslationView from "../translation-view";
+import { createClient } from "@/lib/supabase/client";
 
 interface Lesson {
   id: string;

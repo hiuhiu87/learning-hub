@@ -21,6 +21,7 @@ import { Plus, ArrowLeft } from "lucide-react";
 import FlashcardEditor from "./flashcard-editor";
 import QuestionEditor from "./question-editor";
 import type { LessonQuestion } from "@/types/lesson";
+import { toast } from "sonner";
 
 interface Lesson {
   id: string;
@@ -132,7 +133,7 @@ export default function LessonEditor({
 
   const handleSave = async () => {
     if (!title.trim()) {
-      alert("Please enter a lesson title");
+      toast.warning("Please enter a lesson title");
       return;
     }
 
@@ -302,7 +303,7 @@ export default function LessonEditor({
               <Button
                 variant="ghost"
                 size="icon"
-                className="border border-slate-200/70 bg-white text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20">
+                className="text-slate-700 dark:text-white outline-none hover:bg-transparent dark:hover:bg-transparent hover:animate-[ease-in-out]">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>

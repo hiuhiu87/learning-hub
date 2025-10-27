@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import type React from "react"
-import Link from "next/link"
+import type React from "react";
+import Link from "next/link";
 import {
   ArrowLeft,
   Users,
@@ -11,64 +11,77 @@ import {
   Sparkles,
   TrendingUp,
   AlertTriangle,
-} from "lucide-react"
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+} from "@/components/ui/accordion";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Enrollment {
-  student_id: string
+  student_id: string;
 }
 
 interface Response {
-  student_id: string
-  question_id: string
-  is_correct: boolean | null
-  answer: string | null
-  created_at?: string
+  student_id: string;
+  question_id: string;
+  is_correct: boolean | null;
+  answer: string | null;
+  created_at?: string;
 }
 
 interface Lesson {
-  id: string
-  title: string
-  description: string
-  time_limit_minutes: number | null
+  id: string;
+  title: string;
+  description: string;
+  time_limit_minutes: number | null;
 }
 
 interface Question {
-  id: string
-  question_text: string
-  question_type: string
-  correct_answer: string
-  option_a: string
-  option_b: string
-  option_c: string
-  option_d: string
-  explanation?: string | null
+  id: string;
+  question_text: string;
+  question_type: string;
+  correct_answer: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  explanation?: string | null;
 }
 
 interface StudentProfile {
-  id: string
-  full_name: string | null
-  email: string | null
+  id: string;
+  full_name: string | null;
+  email: string | null;
 }
 
 type StudentSummary = {
-  studentId: string
-  profile?: StudentProfile
-  correct: number
-  attempts: number
-  score: number
-  responses: Map<string, Response>
-}
+  studentId: string;
+  profile?: StudentProfile;
+  correct: number;
+  attempts: number;
+  score: number;
+  responses: Map<string, Response>;
+};
 
 export default function LessonAnalytics({
   lesson,
@@ -77,41 +90,47 @@ export default function LessonAnalytics({
   questions,
   students,
 }: {
-  lesson: Lesson
-  enrollments: Enrollment[]
-  responses: Response[]
-  questions: Question[]
-  students: StudentProfile[]
+  lesson: Lesson;
+  enrollments: Enrollment[];
+  responses: Response[];
+  questions: Question[];
+  students: StudentProfile[];
 }) {
-  const questionMap = new Map(questions.map((question) => [question.id, question]))
-  const studentProfiles = new Map(students.map((student) => [student.id, student]))
+  // const questionMap = new Map(questions.map((question) => [question.id, question]))
+  const studentProfiles = new Map(
+    students.map(student => [student.id, student])
+  );
 
-  const responsesByStudent = new Map<string, Map<string, Response>>()
-  responses.forEach((response) => {
-    const existing = responsesByStudent.get(response.student_id) || new Map<string, Response>()
-    existing.set(response.question_id, response)
-    responsesByStudent.set(response.student_id, existing)
-  })
+  const responsesByStudent = new Map<string, Map<string, Response>>();
+  responses.forEach(response => {
+    const existing =
+      responsesByStudent.get(response.student_id) ||
+      new Map<string, Response>();
+    existing.set(response.question_id, response);
+    responsesByStudent.set(response.student_id, existing);
+  });
 
   const studentIds = Array.from(
     new Set([
-      ...enrollments.map((enrollment) => enrollment.student_id),
-      ...responses.map((response) => response.student_id),
-    ]),
-  )
+      ...enrollments.map(enrollment => enrollment.student_id),
+      ...responses.map(response => response.student_id),
+    ])
+  );
 
-  const totalQuestions = questions.length
+  const totalQuestions = questions.length;
 
-  const studentSummaries: StudentSummary[] = studentIds.map((studentId) => {
-    const studentResponses = responsesByStudent.get(studentId) || new Map<string, Response>()
-    let correct = 0
-    studentResponses.forEach((response) => {
+  const studentSummaries: StudentSummary[] = studentIds.map(studentId => {
+    const studentResponses =
+      responsesByStudent.get(studentId) || new Map<string, Response>();
+    let correct = 0;
+    studentResponses.forEach(response => {
       if (response.is_correct) {
-        correct += 1
+        correct += 1;
       }
-    })
+    });
 
-    const score = totalQuestions > 0 ? Math.round((correct / totalQuestions) * 100) : 0
+    const score =
+      totalQuestions > 0 ? Math.round((correct / totalQuestions) * 100) : 0;
 
     return {
       studentId,
@@ -120,37 +139,42 @@ export default function LessonAnalytics({
       attempts: studentResponses.size,
       score,
       responses: studentResponses,
-    }
-  })
+    };
+  });
 
   studentSummaries.sort((a, b) => {
-    const nameA = getStudentDisplayName(a).toLowerCase()
-    const nameB = getStudentDisplayName(b).toLowerCase()
-    return nameA.localeCompare(nameB)
-  })
+    const nameA = getStudentDisplayName(a).toLowerCase();
+    const nameB = getStudentDisplayName(b).toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
 
-  const totalStudents = studentSummaries.length
-  const totalResponses = responses.length
-  const correctResponses = responses.filter((r) => r.is_correct).length
+  const totalStudents = studentSummaries.length;
+  const totalResponses = responses.length;
+  const correctResponses = responses.filter(r => r.is_correct).length;
   const averageScore =
     studentSummaries.length > 0
-      ? Math.round(studentSummaries.reduce((sum, summary) => sum + summary.score, 0) / studentSummaries.length)
-      : 0
+      ? Math.round(
+          studentSummaries.reduce((sum, summary) => sum + summary.score, 0) /
+            studentSummaries.length
+        )
+      : 0;
 
-  const questionResponses = new Map<string, Response[]>()
-  responses.forEach((response) => {
-    const list = questionResponses.get(response.question_id) ?? []
-    list.push(response)
-    questionResponses.set(response.question_id, list)
-  })
+  const questionResponses = new Map<string, Response[]>();
+  responses.forEach(response => {
+    const list = questionResponses.get(response.question_id) ?? [];
+    list.push(response);
+    questionResponses.set(response.question_id, list);
+  });
 
-  const questionInsights = questions.map((question) => {
-    const questionResponseList = questionResponses.get(question.id) ?? []
-    const correctCount = questionResponseList.filter((response) => response.is_correct).length
-    const incorrectCount = questionResponseList.length - correctCount
+  const questionInsights = questions.map(question => {
+    const questionResponseList = questionResponses.get(question.id) ?? [];
+    const correctCount = questionResponseList.filter(
+      response => response.is_correct
+    ).length;
+    const incorrectCount = questionResponseList.length - correctCount;
     const accuracy = questionResponseList.length
       ? Math.round((correctCount / questionResponseList.length) * 100)
-      : null
+      : null;
 
     return {
       question,
@@ -158,24 +182,24 @@ export default function LessonAnalytics({
       correctCount,
       incorrectCount,
       accuracy,
-    }
-  })
+    };
+  });
 
   const strongestQuestion = questionInsights
-    .filter((item) => item.responses.length > 0)
-    .reduce<typeof questionInsights[number] | null>((best, current) => {
-      if (!best) return current
-      if ((current.accuracy ?? 0) > (best.accuracy ?? 0)) return current
-      return best
-    }, null)
+    .filter(item => item.responses.length > 0)
+    .reduce<(typeof questionInsights)[number] | null>((best, current) => {
+      if (!best) return current;
+      if ((current.accuracy ?? 0) > (best.accuracy ?? 0)) return current;
+      return best;
+    }, null);
 
   const weakestQuestion = questionInsights
-    .filter((item) => item.responses.length > 0)
-    .reduce<typeof questionInsights[number] | null>((worst, current) => {
-      if (!worst) return current
-      if ((current.accuracy ?? 100) < (worst.accuracy ?? 100)) return current
-      return worst
-    }, null)
+    .filter(item => item.responses.length > 0)
+    .reduce<(typeof questionInsights)[number] | null>((worst, current) => {
+      if (!worst) return current;
+      if ((current.accuracy ?? 100) < (worst.accuracy ?? 100)) return current;
+      return worst;
+    }, null);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100">
@@ -189,8 +213,7 @@ export default function LessonAnalytics({
               <Button
                 variant="ghost"
                 size="icon"
-                className="border border-slate-200/70 bg-white text-slate-700 transition-colors hover:bg-slate-100 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
-              >
+                className="border border-slate-200/70 bg-white text-slate-700 transition-colors hover:bg-slate-100 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
@@ -202,7 +225,8 @@ export default function LessonAnalytics({
                 {lesson.title}
               </h1>
               <p className="mt-2 text-sm text-slate-600 transition-colors dark:text-slate-300">
-                Understand engagement, celebrate wins, and spot opportunities to improve this journey.
+                Understand engagement, celebrate wins, and spot opportunities to
+                improve this journey.
               </p>
             </div>
           </div>
@@ -210,15 +234,14 @@ export default function LessonAnalytics({
             {lesson.time_limit_minutes != null ? (
               <Badge
                 variant="secondary"
-                className="border-slate-200/70 bg-white text-slate-700 transition-colors dark:border-white/10 dark:bg-white/10 dark:text-white"
-              >
-                Time limit: {lesson.time_limit_minutes} minute{lesson.time_limit_minutes === 1 ? "" : "s"}
+                className="border-slate-200/70 bg-white text-slate-700 transition-colors dark:border-white/10 dark:bg-white/10 dark:text-white">
+                Time limit: {lesson.time_limit_minutes} minute
+                {lesson.time_limit_minutes === 1 ? "" : "s"}
               </Badge>
             ) : (
               <Badge
                 variant="secondary"
-                className="border-slate-200/70 bg-white text-slate-700 transition-colors dark:border-white/10 dark:bg-white/10 dark:text-white"
-              >
+                className="border-slate-200/70 bg-white text-slate-700 transition-colors dark:border-white/10 dark:bg-white/10 dark:text-white">
                 Self-paced lesson
               </Badge>
             )}
@@ -263,7 +286,8 @@ export default function LessonAnalytics({
                 Learner performance
               </CardTitle>
               <CardDescription className="text-sm text-slate-600 transition-colors dark:text-slate-300">
-                Track how each student performed and how many prompts they attempted.
+                Track how each student performed and how many prompts they
+                attempted.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -275,21 +299,28 @@ export default function LessonAnalytics({
                 <Table className="text-sm">
                   <TableHeader className="bg-slate-100/80 transition-colors dark:bg-white/5">
                     <TableRow className="border-slate-200/70 transition-colors hover:bg-slate-100/80 dark:border-white/10 dark:hover:bg-white/5">
-                      <TableHead className="text-slate-700 transition-colors dark:text-slate-200">Learner</TableHead>
-                      <TableHead className="text-slate-700 transition-colors dark:text-slate-200">Email</TableHead>
-                      <TableHead className="text-slate-700 transition-colors dark:text-slate-200">Attempts</TableHead>
-                      <TableHead className="text-slate-700 transition-colors dark:text-slate-200">Correct</TableHead>
+                      <TableHead className="text-slate-700 transition-colors dark:text-slate-200">
+                        Learner
+                      </TableHead>
+                      <TableHead className="text-slate-700 transition-colors dark:text-slate-200">
+                        Email
+                      </TableHead>
+                      <TableHead className="text-slate-700 transition-colors dark:text-slate-200">
+                        Attempts
+                      </TableHead>
+                      <TableHead className="text-slate-700 transition-colors dark:text-slate-200">
+                        Correct
+                      </TableHead>
                       <TableHead className="text-right text-slate-700 transition-colors dark:text-slate-200">
                         Score
                       </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {studentSummaries.map((summary) => (
+                    {studentSummaries.map(summary => (
                       <TableRow
                         key={summary.studentId}
-                        className="border-slate-200/60 transition-colors hover:bg-slate-100/60 dark:border-white/5 dark:hover:bg-white/5"
-                      >
+                        className="border-slate-200/60 transition-colors hover:bg-slate-100/60 dark:border-white/5 dark:hover:bg-white/5">
                         <TableCell className="text-slate-800 transition-colors dark:text-slate-100">
                           {getStudentDisplayName(summary)}
                         </TableCell>
@@ -309,8 +340,7 @@ export default function LessonAnalytics({
                               summary.score >= 70
                                 ? "text-emerald-700 dark:text-emerald-100"
                                 : "text-amber-700 dark:text-amber-100"
-                            }`}
-                          >
+                            }`}>
                             {summary.score}%
                           </Badge>
                         </TableCell>
@@ -335,7 +365,9 @@ export default function LessonAnalytics({
               <InsightBlock
                 icon={<Sparkles className="h-5 w-5" />}
                 title="Lesson summary"
-                description={`${totalResponses || 0} responses across ${totalStudents} learners`}
+                description={`${
+                  totalResponses || 0
+                } responses across ${totalStudents} learners`}
               />
               {strongestQuestion ? (
                 <InsightBlock
@@ -369,125 +401,144 @@ export default function LessonAnalytics({
 
         <section className="rounded-3xl border border-slate-200/70 bg-white/80 p-6 shadow-2xl backdrop-blur transition-colors dark:border-white/10 dark:bg-white/5">
           <div className="flex flex-col gap-2">
-            <h2 className="text-2xl font-semibold text-slate-900 transition-colors dark:text-white">Question breakdown</h2>
+            <h2 className="text-2xl font-semibold text-slate-900 transition-colors dark:text-white">
+              Question breakdown
+            </h2>
             <p className="text-sm text-slate-600 transition-colors dark:text-slate-300">
-              Drill into each prompt to understand misconceptions and adjust next steps.
+              Drill into each prompt to understand misconceptions and adjust
+              next steps.
             </p>
           </div>
           <Accordion type="single" collapsible className="mt-6 space-y-3">
-            {questionInsights.map(({ question, responses: questionResponsesList, correctCount, incorrectCount, accuracy }) => {
-              const total = questionResponsesList.length
-              const accuracyLabel =
-                accuracy === null ? "Awaiting data" : `${accuracy}% accuracy (${correctCount}/${total})`
+            {questionInsights.map(
+              ({
+                question,
+                responses: questionResponsesList,
+                correctCount,
+                incorrectCount,
+                accuracy,
+              }) => {
+                const total = questionResponsesList.length;
+                const accuracyLabel =
+                  accuracy === null
+                    ? "Awaiting data"
+                    : `${accuracy}% accuracy (${correctCount}/${total})`;
 
-              return (
-                <AccordionItem
-                  key={question.id}
-                  value={question.id}
-                  className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80 text-slate-900 transition-colors dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-100"
-                >
-                  <AccordionTrigger className="px-5 py-4 text-left text-base font-semibold text-slate-900 transition-colors hover:bg-slate-100/80 dark:text-white dark:hover:bg-white/5">
-                    <div className="flex flex-col gap-1">
-                      <span>{question.question_text}</span>
-                      <span className="text-xs text-slate-500 transition-colors dark:text-slate-400">{accuracyLabel}</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="space-y-4 px-5 pb-5 text-sm text-slate-700 transition-colors dark:text-slate-200">
-                    <div className="flex flex-wrap gap-3 text-xs">
-                      <Badge
-                        variant="secondary"
-                        className="border-slate-200/70 bg-slate-100 text-slate-700 transition-colors dark:border-white/10 dark:bg-white/10 dark:text-slate-100"
-                      >
-                        {formatQuestionType(question.question_type)}
-                      </Badge>
-                      <Badge
-                        variant="secondary"
-                        className="border-emerald-500/40 bg-emerald-100 text-emerald-700 transition-colors dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-100"
-                      >
-                        Correct answers: {correctCount}
-                      </Badge>
-                      <Badge
-                        variant="secondary"
-                        className="border-rose-500/40 bg-rose-100 text-rose-700 transition-colors dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-100"
-                      >
-                        Incorrect: {incorrectCount}
-                      </Badge>
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {["A", "B", "C", "D"].map((key) => {
-                        const label = optionLabel(question, key as "A" | "B" | "C" | "D")
-                        if (!label) return null
-                        const isCorrectOption = key === question.correct_answer
-                        return (
-                          <div
-                            key={key}
-                            className={`rounded-xl border px-3 py-3 ${
-                              isCorrectOption
-                                ? "border-emerald-500/40 bg-emerald-100 text-emerald-700 transition-colors dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-100"
-                                : "border-slate-200/70 bg-slate-50 text-slate-700 transition-colors dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-                            }`}
-                          >
-                            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 transition-colors dark:text-slate-400">
-                              {key}
-                            </p>
-                            <p className="text-sm font-medium text-slate-800 transition-colors dark:text-slate-100">
-                              {label}
-                            </p>
-                            {isCorrectOption && (
-                              <p className="mt-1 text-xs text-emerald-600 transition-colors dark:text-emerald-200">
-                                Correct answer
-                              </p>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-
-                    {question.explanation && (
-                      <div className="rounded-xl border border-slate-200/70 bg-slate-50 p-4 text-sm text-slate-700 transition-colors dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
-                        <p className="font-semibold text-slate-900 transition-colors dark:text-white">
-                          Teacher explanation
-                        </p>
-                        <p className="mt-2 text-slate-700 transition-colors dark:text-slate-200">{question.explanation}</p>
+                return (
+                  <AccordionItem
+                    key={question.id}
+                    value={question.id}
+                    className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white/80 text-slate-900 transition-colors dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-100">
+                    <AccordionTrigger className="px-5 py-4 text-left text-base font-semibold text-slate-900 transition-colors hover:bg-slate-100/80 dark:text-white dark:hover:bg-white/5">
+                      <div className="flex flex-col gap-1">
+                        <span>{question.question_text}</span>
+                        <span className="text-xs text-slate-500 transition-colors dark:text-slate-400">
+                          {accuracyLabel}
+                        </span>
                       </div>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              )
-            })}
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-4 px-5 pb-5 text-sm text-slate-700 transition-colors dark:text-slate-200">
+                      <div className="flex flex-wrap gap-3 text-xs">
+                        <Badge
+                          variant="secondary"
+                          className="border-slate-200/70 bg-slate-100 text-slate-700 transition-colors dark:border-white/10 dark:bg-white/10 dark:text-slate-100">
+                          {formatQuestionType(question.question_type)}
+                        </Badge>
+                        <Badge
+                          variant="secondary"
+                          className="border-emerald-500/40 bg-emerald-100 text-emerald-700 transition-colors dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-100">
+                          Correct answers: {correctCount}
+                        </Badge>
+                        <Badge
+                          variant="secondary"
+                          className="border-rose-500/40 bg-rose-100 text-rose-700 transition-colors dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-100">
+                          Incorrect: {incorrectCount}
+                        </Badge>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {["A", "B", "C", "D"].map(key => {
+                          const label = optionLabel(
+                            question,
+                            key as "A" | "B" | "C" | "D"
+                          );
+                          if (!label) return null;
+                          const isCorrectOption =
+                            key === question.correct_answer;
+                          return (
+                            <div
+                              key={key}
+                              className={`rounded-xl border px-3 py-3 ${
+                                isCorrectOption
+                                  ? "border-emerald-500/40 bg-emerald-100 text-emerald-700 transition-colors dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-100"
+                                  : "border-slate-200/70 bg-slate-50 text-slate-700 transition-colors dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                              }`}>
+                              <p className="text-xs uppercase tracking-[0.2em] text-slate-500 transition-colors dark:text-slate-400">
+                                {key}
+                              </p>
+                              <p className="text-sm font-medium text-slate-800 transition-colors dark:text-slate-100">
+                                {label}
+                              </p>
+                              {isCorrectOption && (
+                                <p className="mt-1 text-xs text-emerald-600 transition-colors dark:text-emerald-200">
+                                  Correct answer
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {question.explanation && (
+                        <div className="rounded-xl border border-slate-200/70 bg-slate-50 p-4 text-sm text-slate-700 transition-colors dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+                          <p className="font-semibold text-slate-900 transition-colors dark:text-white">
+                            Teacher explanation
+                          </p>
+                          <p className="mt-2 text-slate-700 transition-colors dark:text-slate-200">
+                            {question.explanation}
+                          </p>
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              }
+            )}
           </Accordion>
         </section>
       </div>
     </div>
-  )
+  );
 }
 
 function getStudentDisplayName(summary: StudentSummary) {
   if (summary.profile?.full_name?.trim()) {
-    return summary.profile.full_name
+    return summary.profile.full_name;
   }
   if (summary.profile?.email) {
-    return summary.profile.email
+    return summary.profile.email;
   }
-  return `${summary.studentId.substring(0, 8)}…`
+  return `${summary.studentId.substring(0, 8)}…`;
 }
 
 function getStudentEmail(summary: StudentSummary) {
-  if (summary.profile?.email && summary.profile.email !== summary.profile.full_name) {
-    return summary.profile.email
+  if (
+    summary.profile?.email &&
+    summary.profile.email !== summary.profile.full_name
+  ) {
+    return summary.profile.email;
   }
-  return undefined
+  return undefined;
 }
 
 function formatQuestionType(type: string) {
   switch (type) {
     case "yes-no-not-given":
-      return "Yes / No / Not Given"
+      return "Yes / No / Not Given";
     case "multiple-choice":
-      return "Multiple choice"
+      return "Multiple choice";
     default:
-      return type
+      return type;
   }
 }
 
@@ -497,8 +548,8 @@ function optionLabel(question: Question, key: "A" | "B" | "C" | "D") {
     B: question.option_b,
     C: question.option_c,
     D: question.option_d,
-  }
-  return lookup[key]
+  };
+  return lookup[key];
 }
 
 function StatCard({
@@ -508,28 +559,35 @@ function StatCard({
   value,
   helper,
 }: {
-  icon: React.ReactNode
-  iconClass: string
-  label: string
-  value: string | number
-  helper: string
+  icon: React.ReactNode;
+  iconClass: string;
+  label: string;
+  value: string | number;
+  helper: string;
 }) {
   return (
     <Card className="border-slate-200/70 bg-white/80 text-slate-900 shadow-2xl backdrop-blur transition-colors dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-100">
       <CardContent className="space-y-3 p-6">
         <div className="flex items-center gap-3">
-          <div className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${iconClass}`}>{icon}</div>
+          <div
+            className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${iconClass}`}>
+            {icon}
+          </div>
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-slate-500 transition-colors dark:text-slate-400">
               {label}
             </p>
-            <p className="text-2xl font-semibold text-slate-900 transition-colors dark:text-white">{value}</p>
+            <p className="text-2xl font-semibold text-slate-900 transition-colors dark:text-white">
+              {value}
+            </p>
           </div>
         </div>
-        <p className="text-xs text-slate-600 transition-colors dark:text-slate-400">{helper}</p>
+        <p className="text-xs text-slate-600 transition-colors dark:text-slate-400">
+          {helper}
+        </p>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function InsightBlock({
@@ -537,9 +595,9 @@ function InsightBlock({
   title,
   description,
 }: {
-  icon: React.ReactNode
-  title: string
-  description: string
+  icon: React.ReactNode;
+  title: string;
+  description: string;
 }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-slate-200/70 bg-white/80 p-4 text-sm text-slate-700 transition-colors dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
@@ -547,9 +605,13 @@ function InsightBlock({
         {icon}
       </div>
       <div>
-        <p className="font-semibold text-slate-900 transition-colors dark:text-white">{title}</p>
-        <p className="text-slate-600 transition-colors dark:text-slate-300">{description}</p>
+        <p className="font-semibold text-slate-900 transition-colors dark:text-white">
+          {title}
+        </p>
+        <p className="text-slate-600 transition-colors dark:text-slate-300">
+          {description}
+        </p>
       </div>
     </div>
-  )
+  );
 }

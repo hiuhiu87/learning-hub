@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { ArrowLeft, BookmarkCheck, Sparkles } from "lucide-react"
+import { useState } from "react";
+import Link from "next/link";
+import { ArrowLeft, BookmarkCheck, Sparkles } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import FlashcardLearner from "./flashcard-learner"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import FlashcardLearner from "./flashcard-learner";
 
 interface Lesson {
-  id: string
-  title: string
-  description: string
+  id: string;
+  title: string;
+  description: string;
 }
 
 interface Flashcard {
-  id: string
-  front: string
-  back: string
-  order_index: number
+  id: string;
+  front: string;
+  back: string;
+  order_index: number;
 }
 
 export default function LessonFlashcards({
@@ -26,12 +26,12 @@ export default function LessonFlashcards({
   lesson,
   flashcards,
 }: {
-  lessonId: string
-  lesson: Lesson
-  flashcards: Flashcard[]
+  lessonId: string;
+  lesson: Lesson;
+  flashcards: Flashcard[];
 }) {
-  const [markedCount, setMarkedCount] = useState(0)
-  const totalCards = flashcards.length
+  const [markedCount, setMarkedCount] = useState(0);
+  const totalCards = flashcards.length;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
@@ -45,16 +45,20 @@ export default function LessonFlashcards({
               <Button
                 variant="ghost"
                 size="icon"
-                className="border border-emerald-300/30 bg-emerald-500/20 text-emerald-50 hover:bg-emerald-500/30"
-              >
+                className="border border-emerald-300/30 bg-emerald-500/20 text-emerald-50 hover:bg-emerald-500/30">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-emerald-200/80">Flashcard review</p>
-              <h1 className="mt-1 text-3xl font-semibold text-emerald-50">{lesson.title}</h1>
+              <p className="text-xs uppercase tracking-[0.3em] text-emerald-200/80">
+                Flashcard review
+              </p>
+              <h1 className="mt-1 text-3xl font-semibold text-emerald-50">
+                {lesson.title}
+              </h1>
               <p className="mt-2 text-sm text-emerald-100/80">
-                {lesson.description || "Cycle through the deck, mark tricky cards, and revisit them until they stick."}
+                {lesson.description ||
+                  "Cycle through the deck, mark tricky cards, and revisit them until they stick."}
               </p>
             </div>
           </div>
@@ -76,12 +80,17 @@ export default function LessonFlashcards({
                   <Sparkles className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Cards in deck</p>
-                  <p className="text-2xl font-semibold text-white">{totalCards}</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                    Cards in deck
+                  </p>
+                  <p className="text-2xl font-semibold text-white">
+                    {totalCards}
+                  </p>
                 </div>
               </div>
               <p className="text-xs text-slate-400">
-                Take your time—flip, reflect, and only move on when the concept feels familiar.
+                Take your time—flip, reflect, and only move on when the concept
+                feels familiar.
               </p>
             </CardContent>
           </Card>
@@ -93,12 +102,17 @@ export default function LessonFlashcards({
                   <BookmarkCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Marked for review</p>
-                  <p className="text-2xl font-semibold text-white">{markedCount}</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                    Marked for review
+                  </p>
+                  <p className="text-2xl font-semibold text-white">
+                    {markedCount}
+                  </p>
                 </div>
               </div>
               <p className="text-xs text-slate-400">
-                Revisit marked cards at the end of your session to reinforce the toughest prompts.
+                Revisit marked cards at the end of your session to reinforce the
+                toughest prompts.
               </p>
             </CardContent>
           </Card>
@@ -106,21 +120,27 @@ export default function LessonFlashcards({
 
         <Card className="border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl backdrop-blur">
           <CardHeader>
-            <CardTitle className="text-xl font-semibold text-white">Flashcard carousel</CardTitle>
+            <CardTitle className="text-xl font-semibold text-white">
+              Flashcard carousel
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {flashcards.length === 0 ? (
               <Card className="border-white/10 bg-white/5 text-slate-200">
                 <CardContent className="py-12 text-center text-sm">
-                  This lesson doesn’t have flashcards yet. Check back after your teacher adds them.
+                  This lesson doesn’t have flashcards yet. Check back after your
+                  teacher adds them.
                 </CardContent>
               </Card>
             ) : (
-              <FlashcardLearner flashcards={flashcards} onMarkedChange={setMarkedCount} />
+              <FlashcardLearner
+                flashcards={flashcards}
+                onMarkedChange={setMarkedCount}
+              />
             )}
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }

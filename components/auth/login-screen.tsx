@@ -1,45 +1,54 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const isDisabled = useMemo(() => isLoading || !email.trim() || !password.trim(), [email, isLoading, password])
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const isDisabled = useMemo(
+    () => isLoading || !email.trim() || !password.trim(),
+    [email, isLoading, password]
+  );
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const supabase = createClient()
-    setIsLoading(true)
-    setError(null)
+    e.preventDefault();
+    const supabase = createClient();
+    setIsLoading(true);
+    setError(null);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      })
-      if (error) throw error
-      router.push("/dashboard")
+      });
+      if (error) throw error;
+      router.push("/dashboard");
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
+      setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-6 py-16 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100 md:px-10 lg:px-16">
@@ -75,7 +84,7 @@ export default function LoginScreen() {
                   placeholder="you@example.com"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={e => setEmail(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -86,7 +95,7 @@ export default function LoginScreen() {
                   autoComplete="current-password"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={e => setPassword(e.target.value)}
                 />
               </div>
               {error ? (
@@ -94,7 +103,9 @@ export default function LoginScreen() {
                   {error}
                 </p>
               ) : (
-                <p className="text-xs text-slate-500">We keep your information secure and never share your data.</p>
+                <p className="text-xs text-slate-500">
+                  We keep your information secure and never share your data.
+                </p>
               )}
               <Button type="submit" className="w-full" disabled={isDisabled}>
                 {isLoading ? "Signing in…" : "Sign in"}
@@ -104,17 +115,22 @@ export default function LoginScreen() {
             <div className="space-y-3 text-center text-sm">
               <div>
                 Don&apos;t have an account?{" "}
-                <Link href="/auth/sign-up" className="font-medium text-sky-600 transition hover:text-sky-700">
+                <Link
+                  href="/auth/sign-up"
+                  className="font-medium text-sky-600 transition hover:text-sky-700">
                   Create one
                 </Link>
               </div>
               <p className="text-xs text-slate-400">
-                Need help? <a href="mailto:support@learnhub.app" className="underline">Contact support</a>
+                Need help?{" "}
+                <a href="mailto:minhhieu87.dev@gmail.com" className="underline">
+                  Contact support
+                </a>
               </p>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }
