@@ -323,7 +323,7 @@ export default function TeacherDashboard({ userId }: { userId: string }) {
               disabled={isRefreshing}
             >
               <RefreshCcw className="size-4" />
-              Sync data
+              Sync
             </Button>
           </div>
 
