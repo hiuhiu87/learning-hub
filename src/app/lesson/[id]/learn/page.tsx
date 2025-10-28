@@ -1,0 +1,59 @@
+import { redirect } from "next/navigation"
+import { createClient } from "@/src/lib/supabase/server"
+import LessonLearner from "@/src/components/lesson/lesson-learner"
+
+export default async function LearnPage({ params }: { params: { id: string } }) {
+  const supabase = await createClient()
+
+  const { data: authData, error: authError } = await supabase.auth.getUser()
+  if (authError || !authData?.user) {
+    redirect("/auth/login")
+  }
+
+  // Check if student is enrolled
+  const { data: enrollment } = await supabase
+    .from("lesson_enrollments")
+    .select("*")
+    .eq("lesson_id", params.id)
+    .eq("student_id", authData.user.id)
+    .single()
+
+  if (!enrollment) {
+    redirect("/dashboard")
+  }
+
+  const { data: lesson } = await supabase.from("lessons").select("*").eq("id", params.id).single()
+
+  if (!lesson) {
+    redirect("/dashboard")
+  }
+
+  const [flashcardResponse, questionsResponse, attemptsResponse] = await Promise.all([
+    supabase
+      .from("flashcards")
+      .select("id", { count: "exact", head: true })
+      .eq("lesson_id", params.id),
+    supabase.from("questions").select("*").eq("lesson_id", params.id).order("order_index"),
+    supabase
+      .from("lesson_attempts")
+      .select("*")
+      .eq("lesson_id", params.id)
+      .eq("student_id", authData.user.id)
+      .order("created_at", { ascending: false }),
+  ])
+
+  const flashcardCount = flashcardResponse.count ?? 0
+  const questions = questionsResponse.data ?? []
+  const attempts = attemptsResponse.data ?? []
+
+  return (
+    <LessonLearner
+      lessonId={params.id}
+      lesson={lesson}
+      questions={questions}
+      userId={authData.user.id}
+      previousAttempts={attempts}
+      flashcardCount={flashcardCount}
+    />
+  )
+}
